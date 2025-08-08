@@ -2,8 +2,8 @@
 set -e
 
 # Define names
-IMAGE_NAME=debian-mirror:bookworm
-MIRROR_DIR=/srv/debian-mirror
+IMAGE_NAME=debian-mirror:buster
+MIRROR_DIR=/srv/apt/debian/archive.debian.org/debian
 
 # Build the container image
 echo "[*] Building container image..."
