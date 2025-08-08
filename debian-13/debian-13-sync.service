@@ -1,0 +1,7 @@
+[Unit]
+Description=Manual Debian Mirror Sync Job
+After=network.target
+
+[Service]
+Type=oneshot
+ExecStart=/absolute/path/to/build-and-sync.sh
