@@ -7,13 +7,14 @@ debmirror /debian-mirror \
   --host=deb.debian.org \
   --root=debian \
   --method=http \
-  --dist=bookworm,bookworm-updates \
+  --dist=bookworm,bookworm-updates,bookworm-backports \
   --section=main,contrib,non-free,non-free-firmware \
   --arch=amd64 \
+  --di-dist=bookworm \
+  --di-arch=amd64 \
   --i18n \
   --progress \
-  --no-source \
-  --ignore-missing-release
+  --ignore-missing-release \
+  --keyring /usr/share/keyrings/debian-archive-keyring.gpg
 
-echo "[✓] Debian 12 mirror sync complete."
-
+echo "[✓] Debian 12 mirror sync complete and ready for offline use."
