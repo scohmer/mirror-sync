@@ -1,0 +1,8 @@
+FROM rockylinux:9
+
+RUN dnf -y install dnf-plugins-core createrepo_c && dnf clean all
+
+COPY sync-rocky-all.sh /usr/local/bin/sync-rocky-all.sh
+RUN chmod +x /usr/local/bin/sync-rocky-all.sh
+
+ENTRYPOINT ["/usr/local/bin/sync-rocky-all.sh"]
