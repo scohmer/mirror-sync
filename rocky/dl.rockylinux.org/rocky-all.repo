@@ -1,0 +1,49 @@
+[BaseOS]
+name=Rocky $releasever - BaseOS
+baseurl=https://dl.rockylinux.org/$contentdir/$releasever/BaseOS/$basearch/os/
+enabled=0
+gpgcheck=0
+
+[AppStream]
+name=Rocky $releasever - AppStream
+baseurl=https://dl.rockylinux.org/$contentdir/$releasever/AppStream/$basearch/os/
+enabled=0
+gpgcheck=0
+
+[Devel]
+name=Rocky $releasever - Devel
+baseurl=https://dl.rockylinux.org/$contentdir/$releasever/Devel/$basearch/os/
+enabled=0
+gpgcheck=0
+
+[devel]
+name=Rocky $releasever - devel
+baseurl=https://dl.rockylinux.org/$contentdir/$releasever/devel/$basearch/os/
+enabled=0
+gpgcheck=0
+
+[extras]
+name=Rocky $releasever - extras
+baseurl=https://dl.rockylinux.org/$contentdir/$releasever/extras/$basearch/os/
+enabled=0
+gpgcheck=0
+
+[plus]
+name=Rocky $releasever - plus
+baseurl=https://dl.rockylinux.org/$contentdir/$releasever/plus/$basearch/os/
+enabled=0
+gpgcheck=0
+
+# Rocky 8 only
+[PowerTools]
+name=Rocky $releasever - PowerTools
+baseurl=https://dl.rockylinux.org/$contentdir/$releasever/PowerTools/$basearch/os/
+enabled=0
+gpgcheck=0
+
+# Rocky 9/10 only
+[CRB]
+name=Rocky $releasever - CRB
+baseurl=https://dl.rockylinux.org/$contentdir/$releasever/CRB/$basearch/os/
+enabled=0
+gpgcheck=0
