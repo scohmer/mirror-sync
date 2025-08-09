@@ -4,4 +4,4 @@ After=network.target
 
 [Service]
 Type=oneshot
-ExecStart=/absolute/path/to/build-and-sync.sh
+ExecStart=/opt/mirror-sync/debian-12/build-and-sync.sh

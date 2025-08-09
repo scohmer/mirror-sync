@@ -7,10 +7,10 @@ debmirror /debian-mirror \
   --host=deb.debian.org \
   --root=debian \
   --method=http \
-  --dist=bookworm,bookworm-updates,bookworm-backports \
+  --dist=trixie,trixie-updates,trixie-backports \
   --section=main,contrib,non-free,non-free-firmware \
   --arch=amd64 \
-  --di-dist=bookworm \
+  --di-dist=trixie \
   --di-arch=amd64 \
   --i18n \
   --progress \
