@@ -1,121 +1,64 @@
-#!/usr/bin/env bash
+#!/bin/bash
 set -euo pipefail
 
-# ====================== Config (env-overridable) ======================
-MIRROR_DIR="${MIRROR_DIR:-/rocky-mirror}"
-ARCH="${ARCH:-x86_64}"
-VERSIONS=(${VERSIONS:-8 9 10})
+# Destination root for the mirror
+MIRROR_DIR="/srv/yum/rocky/pub"
 
-BASE="${BASE:-https://dl.rockylinux.org}"
-PUB="${PUB:-$BASE/pub/rocky}"
-VAULT="${VAULT:-$BASE/vault/rocky}"
-VAULT_8="${VAULT_8:-}"   # e.g. 8.9 to freeze at vault; empty => use PUB for 8
-# =====================================================================
+# Architectures to sync
+ARCHES=("x86_64")
 
-log() { printf "[%s] %s\n" "$(date +'%F %T')" "$*"; }
+# Repos to sync with dnf reposync
+DNF_REPOS=("AppStream" "BaseOS" "Devel" "PowerTools" "extras" "plus")
 
-# Build repo baseurl, honoring VAULT_8 for Rocky 8 if set
-repo_baseurl() {
-  local ver="$1" repo="$2" arch="$3"
-  local root
-  if [[ "$ver" -eq 8 && -n "$VAULT_8" ]]; then
-    root="${VAULT}/${VAULT_8}"
-  else
-    root="${PUB}/${ver}"
-  fi
-  printf "%s/%s/%s/os/" "$root" "$repo" "$arch"
+# Directories to sync with rsync
+RSYNC_DIRS=("images" "isos")
+
+# Rocky versions to mirror
+VERSIONS=("8" "9" "10")
+
+log() {
+  echo "[$(date '+%Y-%m-%d %H:%M:%S')] $*"
 }
 
-# Probe a DNF repo by checking repodata/repomd.xml (follow redirects)
-probe_repo() {
-  local baseurl="$1"
-  curl -fsL -o /dev/null "${baseurl}repodata/repomd.xml"
-}
-
-# Repo set per version (includes both devel/Devel; whichever exists will sync)
-repos_for_ver() {
+sync_dnf_repo() {
   local ver="$1"
-  local r=(BaseOS AppStream extras devel Devel plus)
-  if [[ "$ver" -eq 8 ]]; then r+=(PowerTools); else r+=(CRB); fi
-  printf "%s\n" "${r[@]}"
-}
+  local repo="$2"
+  local arch="$3"
 
-# Sync non-DNF trees via rsync (images/ & isos/)
-sync_images_isos() {
-  local ver="$1" arch="$2"
-  local src_root dst_root
-  if [[ "$ver" -eq 8 && -n "$VAULT_8" ]]; then
-    src_root="${VAULT}/${VAULT_8}/${ver}"
-  else
-    src_root="${PUB}/${ver}"
-  fi
-  dst_root="${MIRROR_DIR}/${ver}"
-
-  log "Syncing images/ for Rocky ${ver} (${arch}) ..."
-  rsync -av --delete --partial \
-    "${src_root}/images/${arch}/" \
-    "${dst_root}/images/${arch}/" || log "images/ not present for ${ver}/${arch}; skipping."
-
-  log "Syncing isos/ for Rocky ${ver} (${arch}) ..."
-  rsync -av --delete --partial \
-    "${src_root}/isos/${arch}/" \
-    "${dst_root}/isos/${arch}/" || log "isos/ not present for ${ver}/${arch}; skipping."
-}
-
-# Reposync exactly one repo (avoid duplicate-id conflicts)
-reposync_one() {
-  local ver="$1" repo="$2" baseurl="$3"
-  local tmp_repo="/tmp/rocky_${ver}_${repo}.repo"
-
-  # temp empty reposdir so dnf doesn't load system /etc/yum.repos.d definitions
-  local EMPTY_REPOSDIR; EMPTY_REPOSDIR="$(mktemp -d)"
-  trap 'rm -rf "$EMPTY_REPOSDIR" "$tmp_repo"' RETURN
-
-  cat > "$tmp_repo" <<EOF
-[${repo}]
-name=Rocky Linux ${ver} - ${repo}
-baseurl=${baseurl}
-enabled=1
-gpgcheck=0
-EOF
-
-  mkdir -p "${MIRROR_DIR}/${ver}"
-  log "reposync ${ver}/${repo} (${ARCH})"
+  log "Syncing Rocky ${ver} ${repo} (${arch}) ..."
   dnf reposync \
     --repoid="${repo}" \
-    --download-metadata \
+    --releasever="${ver}" \
+    --arch="${arch}" \
     --download-path="${MIRROR_DIR}/${ver}" \
-    --config="$tmp_repo" \
-    --setopt=reposdir="${EMPTY_REPOSDIR}" \
-    --arch="${ARCH}"
+    --download-metadata \
+    --delete \
+    --newest-only || log "Failed to sync ${repo} for Rocky ${ver}."
 }
 
-sync_version() {
+sync_rsync_dir() {
   local ver="$1"
-  log "=== Rocky Linux ${ver} ==="
+  local dir="$2"
+  local arch="$3"
 
-  while read -r repo; do
-    local baseurl; baseurl="$(repo_baseurl "$ver" "$repo" "$ARCH")"
-    if probe_repo "$baseurl"; then
-      reposync_one "$ver" "$repo" "$baseurl"
-    else
-      log "Skipping ${ver}/${repo} (${ARCH}) – repodata not found."
-    fi
-  done < <(repos_for_ver "$ver")
+  local src="rsync://dl.rockylinux.org/rocky/${ver}/${dir}/${arch}/"
+  local dest="${MIRROR_DIR}/${ver}/${dir}/${arch}/"
 
-  # Pull images/ and isos/ (non-DNF trees)
-  sync_images_isos "$ver" "$ARCH"
+  log "Syncing Rocky ${ver} ${dir} (${arch}) ..."
+  rsync -av --delete --partial "$src" "$dest" || log "${dir} not found for Rocky ${ver}."
 }
 
 main() {
-  log "Starting Rocky mirror sync into ${MIRROR_DIR}"
-  log "ARCH=${ARCH}  VERSIONS=${VERSIONS[*]}  PUB=${PUB}  VAULT=${VAULT}  VAULT_8=${VAULT_8:-<none>}"
-
   for ver in "${VERSIONS[@]}"; do
-    sync_version "$ver"
+    for arch in "${ARCHES[@]}"; do
+      for repo in "${DNF_REPOS[@]}"; do
+        sync_dnf_repo "$ver" "$repo" "$arch"
+      done
+      for dir in "${RSYNC_DIRS[@]}"; do
+        sync_rsync_dir "$ver" "$dir" "$arch"
+      done
+    done
   done
-
-  log "Rocky mirror sync complete."
 }
 
 main "$@"
