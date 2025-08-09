@@ -10,7 +10,7 @@ SEC_MIRROR_DIR=/srv/apt/debian/security.debian.org/debian-security
 # Processes related to Debian 11 mirror synchronization
 # Build the container image
 echo "[*] Building container image..."
-podman build -t "$DEB_IMAGE_NAME" .
+podman build -t "$DEB_IMAGE_NAME" ./deb.debian.org
 
 # Ensure mirror directory exists
 sudo mkdir -p "$DEB_MIRROR_DIR"
@@ -26,7 +26,7 @@ echo "[✓] Debian mirror sync complete at: $DEB_MIRROR_DIR"
 # Processes related to Debian 11 security mirror synchronization
 # Build the container image
 echo "[*] Building container image..."
-podman build -t "$SEC_IMAGE_NAME" .
+podman build -t "$SEC_IMAGE_NAME" ./security.debian.org
 
 # Ensure mirror directory exists
 sudo mkdir -p "$SEC_MIRROR_DIR"

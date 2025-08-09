@@ -1,13 +1,13 @@
 #!/bin/bash
 set -e
 
-echo "[*] Starting Debian 11 (bullseye) security sync..."
+echo "[*] Starting Debian 13 (trixie) security sync..."
 
 debmirror /debian-mirror \
   --host=security.debian.org \
   --root=debian-security \
   --method=http \
-  --dist=bullseye-security \
+  --dist=trixie-security \
   --section=main,contrib,non-free,non-free-firmware,updates \
   --arch=amd64,i386 \
   --i18n \
@@ -15,4 +15,4 @@ debmirror /debian-mirror \
   --ignore-missing-release \
   --keyring /usr/share/keyrings/debian-archive-keyring.gpg
 
-echo "[✓] Debian 11 security sync complete and ready for offline use."
+echo "[✓] Debian 13 security sync complete and ready for offline use."

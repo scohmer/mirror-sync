@@ -7,8 +7,8 @@ debmirror /debian-mirror \
   --host=deb.debian.org \
   --root=debian \
   --method=http \
-  --dist=bullseye,bullseye-updates,bullseye-backports \
-  --section=main,contrib,non-free,non-free-firmware \
+  --dist=bullseye,bullseye-updates \
+  --section=main,contrib,non-free \
   --arch=amd64,i386 \
   --di-dist=bullseye \
   --di-arch=amd64 \

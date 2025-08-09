@@ -7,7 +7,7 @@ MIRROR_DIR=/srv/apt/debian/archive.debian.org/debian
 
 # Build the container image
 echo "[*] Building container image..."
-podman build -t "$IMAGE_NAME" .
+podman build -t "$IMAGE_NAME" ./archive.debian.org
 
 # Ensure mirror directory exists
 sudo mkdir -p "$MIRROR_DIR"
