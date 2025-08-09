@@ -41,11 +41,12 @@ sync_rsync_dir() {
   local dir="$2"
   local arch="$3"
 
-  local src="rsync://dl.rockylinux.org/rocky/${ver}/${dir}/${arch}/"
+  local src="https://dl.rockylinux.org/pub/rocky/${ver}/${dir}/${arch}/"
   local dest="${MIRROR_DIR}/${ver}/${dir}/${arch}/"
 
   log "Syncing Rocky ${ver} ${dir} (${arch}) ..."
-  rsync -av --delete --partial "$src" "$dest" || log "${dir} not found for Rocky ${ver}."
+  wget --mirror --no-parent --no-host-directories \
+       "$src" -P "$dest" || log "${dir} not found for Rocky ${ver}."
 }
 
 main() {
