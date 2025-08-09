@@ -1,7 +1,0 @@
-[Unit]
-Description=Manual Debian Mirror Sync Job
-After=network.target
-
-[Service]
-Type=oneshot
-ExecStart=/opt/mirror-sync/debian-12/build-and-sync.sh
