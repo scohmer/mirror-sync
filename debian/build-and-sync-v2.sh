@@ -32,10 +32,10 @@ sudo chown -R root:root "$DEB_MIRROR_DIR" "$SEC_MIRROR_DIR"
 sudo chcon -Rt container_file_t "$DEB_MIRROR_DIR" "$SEC_MIRROR_DIR" || true
 
 echo "[*] Running both sync containers in parallel…"
-podman run --rm -v "$DEB_MIRROR_DIR:/debian-mirror:Z" "$DEB_IMAGE_NAME" >"$LOG_DIR/run-deb.log" 2>&1 &
+podman run --rm --name debian-mirror -v "$DEB_MIRROR_DIR:/debian-mirror:Z" "$DEB_IMAGE_NAME" >"$LOG_DIR/run-deb.log" 2>&1 &
 PID_RUN_DEB=$!
 
-podman run --rm -v "$SEC_MIRROR_DIR:/debian-mirror:Z" "$SEC_IMAGE_NAME" >"$LOG_DIR/run-sec.log" 2>&1 &
+podman run --rm --name debian-security -v "$SEC_MIRROR_DIR:/debian-mirror:Z" "$SEC_IMAGE_NAME" >"$LOG_DIR/run-sec.log" 2>&1 &
 PID_RUN_SEC=$!
 
 # Wait for both runs
