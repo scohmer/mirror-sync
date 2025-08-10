@@ -1,12 +1,6 @@
 FROM rockylinux:9
 
-RUN dnf -y install curl dnf-plugins-core createrepo_c wget && dnf clean all
-
-# Remove default repos to prevent duplicate IDs
-RUN rm -f /etc/yum.repos.d/*
-
-# Bake in the repo definitions (for all majors)
-COPY rocky-all.repo /etc/yum.repos.d/rocky-all.repo
+RUN dnf -y install dnf-plugins-core createrepo_c wget && dnf clean all
 
 COPY sync-rocky-all.sh /usr/local/bin/sync-rocky-all.sh
 RUN chmod +x /usr/local/bin/sync-rocky-all.sh

@@ -1,97 +1,135 @@
 #!/usr/bin/env bash
 set -euo pipefail
 
-# ================== Config (override via env if needed) ==================
-MIRROR_DIR="${MIRROR_DIR:-/srv/yum/rocky/pub}"   # bind-mount this on run
-VERSIONS=(${VERSIONS:-8 9 10})
-ARCHES=(${ARCHES:-x86_64})
+# ===== Config (override with env vars) =====
+: "${MIRROR_ROOT:=/rocky-mirror}"                 # where to store the mirror (mount a volume here)
+: "${VERSIONS:=8 9 10}"                     # space-separated list
+: "${ARCHES:=x86_64}"                       # e.g. "x86_64 aarch64"
+# User-requested repos; case-insensitive; CRB/PowerTools handled per-version below
+: "${REPOS:=AppStream BaseOS Devel Extras Plus PowerTools}"
+: "${UPSTREAM_BASE:=https://dl.rockylinux.org/pub/rocky}"  # official origin
 
-# DNF repo IDs baked into /etc/yum.repos.d/rocky-all.repo (enabled=0)
-REPOS_COMMON=(BaseOS AppStream Devel devel extras plus)
-REPO_8_ONLY=PowerTools
-REPO_9P_ONLY=CRB
-# ========================================================================
+# Tuning for reposync
+: "${KEEP_OLD:=false}"                      # set true to skip --delete
+: "${NEWEST_ONLY:=true}"                    # set false to mirror all package versions
 
-log(){ printf "[%s] %s\n" "$(date +'%F %T')" "$*"; }
+# ===== Helpers =====
+log() { printf '[%(%Y-%m-%d %H:%M:%S)T] %s\n' -1 "$*" >&2; }
 
-need(){ command -v "$1" >/dev/null 2>&1 || { echo "Missing: $1" >&2; exit 1; }; }
-
-# Check if a repo exists for the given major/arch (avoids noisy errors)
-probe_repo(){
-  local ver="$1" repo="$2" arch="$3"
-  curl -fsL -o /dev/null \
-    "https://dl.rockylinux.org/pub/rocky/${ver}/${repo}/${arch}/os/repodata/repomd.xml"
-}
-
-# Sync exactly one repo id (no --disablerepo here; we enable just that ID)
-reposync_one(){
-  local ver="$1" arch="$2" repoid="$3"
-  log "Syncing Rocky ${ver} ${repoid} (${arch}) ..."
-  dnf reposync \
-    --releasever="${ver}" \
-    --repoid="${repoid}" \
-    --enablerepo="${repoid}" \
-    --arch="${arch}" \
-    --download-path="${MIRROR_DIR}/${ver}" \
-    --download-metadata \
-    --delete \
-    --newest-only \
-    || log "Failed to sync ${repoid} for Rocky ${ver} (${arch})."
-}
-
-# Mirror non-DNF trees for PXE/ISOs over HTTPS (works everywhere)
-mirror_tree_https(){
-  local url="$1" dest="$2"
-  mkdir -p "$dest"
-  # Use wget mirroring flags; ignore if 404/not present
-  wget -q -e robots=off --mirror --no-parent --no-host-directories \
-       --directory-prefix="$dest" "$url" || true
-}
-
-sync_images_isos(){
-  local ver="$1" arch="$2" base="https://dl.rockylinux.org/pub/rocky/${ver}"
-  log "Mirroring images/ for ${ver}/${arch} ..."
-  mirror_tree_https "${base}/images/${arch}/" "${MIRROR_DIR}/${ver}/images/${arch}/"
-  log "Mirroring isos/ for ${ver}/${arch} ..."
-  mirror_tree_https "${base}/isos/${arch}/"   "${MIRROR_DIR}/${ver}/isos/${arch}/"
-}
-
-main(){
-  need dnf
-  need reposync   # from dnf-plugins-core
-  need curl
-  need wget
-
-  log "Destination: ${MIRROR_DIR}"
-  log "Majors: ${VERSIONS[*]} | Arches: ${ARCHES[*]}"
-
-  for ver in "${VERSIONS[@]}"; do
-    for arch in "${ARCHES[@]}"; do
-      log "=== Rocky Linux ${ver} (${arch}) ==="
-
-      # pick repo set for this major
-      repos=("${REPOS_COMMON[@]}")
-      if [[ "$ver" -eq 8 ]]; then
-        repos+=("$REPO_8_ONLY")
+# Normalize a repo token to canonical path segment (case sensitive to match upstream)
+# Inputs: version, repo_token
+# Echoes: canonical path segment (e.g., BaseOS, AppStream, CRB, PowerTools, extras, plus, devel)
+map_repo() {
+  local ver="$1" in="$2"
+  local low="${in,,}"  # lowercased
+  case "$low" in
+    baseos)      echo "BaseOS" ;;
+    appstream)   echo "AppStream" ;;
+    extras)      echo "extras" ;;
+    plus)        echo "plus" ;;
+    devel)       echo "devel" ;;
+    powertools|crb|codeready-builder)
+      if [[ "$ver" == 8* ]]; then
+        echo "PowerTools"
       else
-        repos+=("$REPO_9P_ONLY")
+        echo "CRB"
       fi
+      ;;
+    *)
+      # Be permissive: if caller passed "Devel" or "PowerTools" with odd case, normalize known ones
+      case "$in" in
+        Devel) echo "devel" ;;
+        PowerTools) echo "PowerTools" ;;
+        CRB) echo "CRB" ;;
+        Extras) echo "extras" ;;
+        Plus) echo "plus" ;;
+        AppStream) echo "AppStream" ;;
+        BaseOS) echo "BaseOS" ;;
+        *)
+          log "WARN: Unknown repo '$in' for version $ver – skipping."
+          return 1
+          ;;
+      esac
+      ;;
+  esac
+}
 
-      # sync each repo that actually exists upstream
-      for repoid in "${repos[@]}"; do
-        if probe_repo "$ver" "$repoid" "$arch"; then
-          reposync_one "$ver" "$arch" "$repoid"
-        else
-          log "Skipping ${ver}/${repoid} (${arch}) – repodata not found."
+# Write a minimal .repo file for a single repo+arch+version to a given path.
+# Args: version repoPath arch outfile repoid
+write_repo_file() {
+  local ver="$1" repoPath="$2" arch="$3" out="$4" repoid="$5"
+  local baseurl="${UPSTREAM_BASE}/${ver}/${repoPath}/${arch}/os/"
+
+  cat > "$out" <<EOF
+[${repoid}]
+name=Rocky ${ver} ${repoPath} (${arch})
+baseurl=${baseurl}
+enabled=1
+gpgcheck=0
+repo_gpgcheck=0
+metadata_expire=120m
+EOF
+}
+
+# Run reposync once for a given repo/config
+# Args: repoid dest_dir repo_file arch
+run_sync() {
+  local repoid="$1" dest="$2" repofile="$3" arch="$4"
+
+  mkdir -p "$dest"
+  local delete_flag=()
+  [[ "$KEEP_OLD" == "true" ]] || delete_flag+=(--delete)
+
+  local newest_flag=()
+  [[ "$NEWEST_ONLY" == "true" ]] && newest_flag+=(--newest-only)
+
+  # --norepopath puts content directly into $dest instead of $dest/<repoid>/
+  dnf -y reposync \
+    --arch "$arch" \
+    --download-metadata \
+    --download-path "$dest" \
+    --norepopath \
+    "${delete_flag[@]}" \
+    "${newest_flag[@]}" \
+    --repoid "$repoid" \
+    -c "$repofile"
+}
+
+# ===== Main =====
+main() {
+  log "Starting Rocky mirror sync"
+  log "Versions: ${VERSIONS} | Arches: ${ARCHES} | Repos (requested): ${REPOS}"
+  log "Mirror root: ${MIRROR_ROOT} | Upstream: ${UPSTREAM_BASE}"
+
+  # workspace for temporary repo files
+  workdir="$(mktemp -d /tmp/rocky-sync.XXXXXX)"
+  trap 'rm -rf "$workdir"' EXIT
+
+  for ver in $VERSIONS; do
+    for arch in $ARCHES; do
+      for token in $REPOS; do
+        repoPath="$(map_repo "$ver" "$token" || true)"
+        [[ -n "${repoPath:-}" ]] || continue
+
+        # Build repoid & paths
+        repoid="rocky-${ver}-${repoPath}-${arch}"
+        repofile="${workdir}/${repoid}.repo"
+        dest="${MIRROR_ROOT}/rocky/${ver}/${repoPath}/${arch}/os"
+
+        log "Sync: ver=${ver} repo=${repoPath} arch=${arch}"
+        write_repo_file "$ver" "$repoPath" "$arch" "$repofile" "$repoid"
+        run_sync "$repoid" "$dest" "$repofile" "$arch"
+
+        # Safety: ensure repodata exists (reposync --download-metadata should have done this)
+        if [[ ! -d "${dest}/repodata" ]]; then
+          log "INFO: repodata missing for ${repoid}, generating with createrepo_c --update"
+          createrepo_c --update "${dest}"
         fi
       done
-
-      # optional: comment out if you don't need PXE/ISOs mirrored
-      sync_images_isos "$ver" "$arch"
     done
   done
 
-  log "Rocky mirror sync complete at ${MIRROR_DIR}"
+  log "Completed Rocky mirror sync"
 }
 
 main "$@"
