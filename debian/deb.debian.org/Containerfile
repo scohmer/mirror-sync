@@ -1,7 +1,7 @@
 FROM debian:12
 
 RUN apt-get update && \
-    apt-get install -y debmirror gnupg rsync debian-archive-keyring && \
+    apt-get install -y curl debmirror gnupg rsync debian-archive-keyring && \
     apt-get clean
 
 COPY sync-debian-mirror.sh /usr/local/bin/sync-debian-mirror.sh

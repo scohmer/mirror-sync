@@ -10,7 +10,7 @@ SEC_CTX="./security.debian.org"
 DEB_MIRROR_DIR="/srv/apt/debian/deb.debian.org/debian"
 SEC_MIRROR_DIR="/srv/apt/debian/security.debian.org/debian-security"
 
-LOG_DIR="${LOG_DIR:-/opt/mirror-sync/log}"
+LOG_DIR="${LOG_DIR:-/opt/mirror-sync/debian/log}"
 mkdir -p "$LOG_DIR"
 
 echo "[*] Building images in parallel…"
