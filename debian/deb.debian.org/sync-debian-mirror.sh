@@ -1,55 +1,60 @@
 #!/bin/bash
-set -e
+set -euo pipefail
 
-MIRROR_DIR="/debian-mirror"
-HOST="deb.debian.org"
-ROOT="debian"
-ARCH="amd64,i386"
-KEYRING="/usr/share/keyrings/debian-archive-keyring.gpg"
+MIRROR_DIR="${MIRROR_DIR:-/debian-mirror}"
+HOST="${HOST:-deb.debian.org}"
+KEYRING="${KEYRING:-/usr/share/keyrings/debian-archive-keyring.gpg}"
+ARCH="${ARCH:-amd64,i386}"
+SECTIONS_DEFAULT="${SECTIONS_DEFAULT:-main,contrib,non-free,non-free-firmware}"
 
-DISTS=("bullseye" "bullseye-updates" "bullseye-backports" "bookworm" "bookworm-updates" "bookworm-backports" "trixie" "trixie-updates" "trixie-backports")
+# Split main vs security (security uses a different root)
+DISTS_MAIN=(bullseye bullseye-updates bullseye-backports bookworm bookworm-updates bookworm-backports trixie trixie-updates)
+DISTS_SEC=(bullseye-security bookworm-security trixie-security)
 
-for dist in "${DISTS[@]}"; do
-  echo "[*] [$dist] Fetching Components from Release..."
-  release_url="http://${HOST}/${ROOT}/dists/${dist}/Release"
-  components=$(curl -fsSL "$release_url" \
-    | awk '/^Components:/ {for (i=2;i<=NF;i++) printf "%s%s", $i, (i==NF?"":" ")}' \
-    | tr ' ' ',')
+fetch_components() {
+  local dist="$1"
+  local root="$2"
+  local url="https://${HOST}/${root}/dists/${dist}/Release"
+  local comps
+  comps="$(curl -fsSL "$url" | awk '/^Components:/ {for (i=2;i<=NF;i++) printf "%s%s",$i,(i==NF?"":" ")}' || true)"
+  if [[ -z "$comps" ]]; then
+    echo "$SECTIONS_DEFAULT"
+  else
+    echo "$comps" | tr ' ' ','
+  fi
+}
 
-  echo "[*] [$dist] Components: ${components}"
-  echo "[*] [$dist] Running debmirror..."
-
+run_debmirror() {
+  local dist="$1" root="$2" comps="$3"
+  echo "[*] [$dist] Components: ${comps}"
   debmirror "${MIRROR_DIR}" \
+    --method=rsync \
     --host="${HOST}" \
-    --root="${ROOT}" \
-    --method=http \
+    --root="${root}" \
     --dist="${dist}" \
-    --section="${components}" \
+    --section="${comps}" \
     --arch="${ARCH}" \
-    --i18n \
     --progress \
-    --ignore-missing-release \
-    --keyring "${KEYRING}"
+    --cleanup \
+    --keyring "${KEYRING}" \
+    --rsync-extra=trace \
+    --rsync-options="--partial --partial-dir=.rsync-partial --inplace --no-whole-file --info=stats2"
+}
+
+# MAIN archive
+for dist in "${DISTS_MAIN[@]}"; do
+  echo "[*] [$dist] Resolving components from Release..."
+  comps="$(fetch_components "$dist" "debian")"
+  echo "[*] [$dist] Running debmirror (main)..."
+  run_debmirror "$dist" "debian" "$comps"
 done
 
-DISTS=("bullseye" "bookworm" "trixie")
-
-for dist in "${DISTS[@]}"; do
-  echo "[*] [$dist] Pulling Debian netboot installer..."
-
-  debmirror "${MIRROR_DIR}" \
-    --host="${HOST}" \
-    --root="${ROOT}" \
-    --method=http \
-    --dist="${dist}" \
-    --section=main \
-    --arch="${ARCH}" \
-    --di-dist="${dist}" \
-    --di-arch="${ARCH}" \
-    --i18n \
-    --progress \
-    --ignore-missing-release \
-    --keyring "${KEYRING}"
+# SECURITY archive (different root)
+for dist in "${DISTS_SEC[@]}"; do
+  echo "[*] [$dist] Resolving components from Release..."
+  comps="$(fetch_components "$dist" "debian-security")"
+  echo "[*] [$dist] Running debmirror (security)..."
+  run_debmirror "$dist" "debian-security" "$comps"
 done
 
 echo "[✓] Debian mirror sync complete."
