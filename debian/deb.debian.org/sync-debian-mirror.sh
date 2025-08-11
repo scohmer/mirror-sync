@@ -28,7 +28,7 @@ run_debmirror() {
   local dist="$1" root="$2" comps="$3"
   echo "[*] [$dist] Components: ${comps}"
   debmirror "${MIRROR_DIR}" \
-    --method=rsync \
+    --method=http \
     --host="${HOST}" \
     --root="${root}" \
     --dist="${dist}" \
