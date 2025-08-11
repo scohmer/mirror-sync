@@ -37,8 +37,8 @@ run_debmirror() {
     --progress \
     --cleanup \
     --keyring "${KEYRING}" \
-    --rsync-extra=trace \
-    --rsync-options="--partial --partial-dir=.rsync-partial --inplace --no-whole-file --info=stats2"
+    --rsync-extra=none \
+    --rsync-options="--partial --info=stats2"
 }
 
 # MAIN archive
