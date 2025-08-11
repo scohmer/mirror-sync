@@ -1,41 +1,29 @@
-#!/bin/bash
-set -e
+#!/usr/bin/env bash
+set -euo pipefail
 
-# Define names
-DEB_IMAGE_NAME=debian-11-mirror:bullseye
-SEC_IMAGE_NAME=security-11-mirror:bullseye
-DEB_MIRROR_DIR=/srv/apt/debian/deb.debian.org/debian
-SEC_MIRROR_DIR=/srv/apt/debian/security.debian.org/debian-security
+IMAGE="debian-mirror:latest"
+CTX="./deb.debian.org"
+TARGET="/srv/apt/debian/deb.debian.org/debian"
+LOG_DIR="${LOG_DIR:-/opt/mirror-sync/debian/log}"
+mkdir -p "$LOG_DIR"
 
-# Processes related to Debian 11 mirror synchronization
-# Build the container image
-echo "[*] Building container image..."
-podman build -t "$DEB_IMAGE_NAME" ./deb.debian.org
+echo "[*] Building image..."
+podman build -t "$IMAGE" "$CTX" >"$LOG_DIR/build.log" 2>&1
+echo "[✓] Built $IMAGE (log: $LOG_DIR/build.log)"
 
-# Ensure mirror directory exists
-sudo mkdir -p "$DEB_MIRROR_DIR"
-sudo chown -R root:root "$DEB_MIRROR_DIR"
-sudo chcon -Rt container_file_t "$DEB_MIRROR_DIR"  # Needed for SELinux
+echo "[*] Preparing target..."
+sudo mkdir -p "$TARGET"
+sudo chown root:root "$TARGET"
+# SELinux: relabel for podman so the container can write
+sudo chcon -Rt container_file_t "$TARGET" || true
 
-# Run the container to sync the mirror
-echo "[*] Running container to sync mirror..."
-podman run --rm -v "$DEB_MIRROR_DIR":/debian-mirror:Z "$DEB_IMAGE_NAME"
+echo "[*] Running sync..."
+podman run --rm --name debian-mirror \
+  -v "$TARGET:/debian-mirror:Z" \
+  --entrypoint /usr/local/bin/sync-debian-mirror.sh \
+  "$IMAGE" >"$LOG_DIR/run.log" 2>&1 || { 
+    echo "[x] Sync failed. See $LOG_DIR/run.log"; exit 1; 
+  }
 
-echo "[✓] Debian mirror sync complete at: $DEB_MIRROR_DIR"
-
-# Processes related to Debian 11 security mirror synchronization
-# Build the container image
-echo "[*] Building container image..."
-podman build -t "$SEC_IMAGE_NAME" ./security.debian.org
-
-# Ensure mirror directory exists
-sudo mkdir -p "$SEC_MIRROR_DIR"
-sudo chown -R root:root "$SEC_MIRROR_DIR"
-sudo chcon -Rt container_file_t "$SEC_MIRROR_DIR"  # Needed for SELinux
-
-# Run the container to sync the mirror
-echo "[*] Running container to sync mirror..."
-podman run --rm -v "$SEC_MIRROR_DIR":/debian-mirror:Z "$SEC_IMAGE_NAME""
-
-echo "[✓] Security mirror sync complete at: $SEC_MIRROR_DIR"
-
+echo "[✓] Sync complete at: $TARGET"
+echo "Log: $LOG_DIR/run.log"
