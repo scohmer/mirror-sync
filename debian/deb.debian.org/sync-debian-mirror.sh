@@ -34,11 +34,11 @@ run_debmirror() {
     --dist="${dist}" \
     --section="${comps}" \
     --arch="${ARCH}" \
+    --i18n \
     --progress \
     --cleanup \
-    --keyring "${KEYRING}" \
-    --rsync-extra=none \
-    --rsync-options="--partial --info=stats2"
+    --timeout 120 \
+    --keyring "${KEYRING}"
 }
 
 # MAIN archive
@@ -49,6 +49,7 @@ for dist in "${DISTS_MAIN[@]}"; do
   run_debmirror "$dist" "debian" "$comps"
 done
 
+MIRROR_DIR="${MIRROR_DIR:-/security-mirror}"
 # SECURITY archive (different root)
 for dist in "${DISTS_SEC[@]}"; do
   echo "[*] [$dist] Resolving components from Release..."
