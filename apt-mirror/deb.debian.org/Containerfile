@@ -1,0 +1,17 @@
+# debian-12.Containerfile
+FROM debian:12-slim
+
+RUN apt-get update && apt-get install -y apt-mirror ca-certificates \
+    && apt-get clean \
+    && rm -rf /var/lib/apt/lists/*
+
+# Create mount point
+RUN mkdir -p /srv/apt/debian/deb.debian.org/debian
+
+# Copy build script
+COPY build-and-sync.sh /usr/local/bin/build-and-sync.sh
+RUN chmod +x /usr/local/bin/build-and-sync.sh
+
+VOLUME ["/srv/apt/debian/deb.debian.org/debian"]
+
+ENTRYPOINT ["/usr/local/bin/build-and-sync.sh"]

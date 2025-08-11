@@ -4,7 +4,7 @@ set -euo pipefail
 IMAGE="debian-mirror:latest"
 CTX="./deb.debian.org"
 DEB_TARGET="/srv/apt/debian/deb.debian.org/debian"
-SEC_TARGET="/src/apt/debian/security.debian.org/debian-security"
+SEC_TARGET="/srv/apt/debian/security.debian.org/debian-security"
 LOG_DIR="${LOG_DIR:-/opt/mirror-sync/debian/log}"
 mkdir -p "$LOG_DIR"
 
