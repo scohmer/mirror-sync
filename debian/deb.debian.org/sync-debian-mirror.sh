@@ -1,7 +1,7 @@
 #!/bin/bash
 set -euo pipefail
 
-MIRROR_DIR="${MIRROR_DIR:-/debian-mirror}"
+DEB_MIRROR_DIR="${DEB_MIRROR_DIR:-/debian-mirror}"
 HOST="${HOST:-deb.debian.org}"
 KEYRING="${KEYRING:-/usr/share/keyrings/debian-archive-keyring.gpg}"
 ARCH="${ARCH:-amd64,i386}"
@@ -27,7 +27,7 @@ fetch_components() {
 run_debmirror() {
   local dist="$1" root="$2" comps="$3"
   echo "[*] [$dist] Components: ${comps}"
-  debmirror "${MIRROR_DIR}" \
+  debmirror "${DEB_MIRROR_DIR}" \
     --method=http \
     --host="${HOST}" \
     --root="${root}" \
@@ -36,7 +36,6 @@ run_debmirror() {
     --arch="${ARCH}" \
     --i18n \
     --progress \
-    --cleanup \
     --timeout 120 \
     --keyring "${KEYRING}"
 }
@@ -49,7 +48,7 @@ for dist in "${DISTS_MAIN[@]}"; do
   run_debmirror "$dist" "debian" "$comps"
 done
 
-MIRROR_DIR="${MIRROR_DIR:-/security-mirror}"
+SEC_MIRROR_DIR="${SEC_MIRROR_DIR:-/security-mirror}"
 # SECURITY archive (different root)
 for dist in "${DISTS_SEC[@]}"; do
   echo "[*] [$dist] Resolving components from Release..."
