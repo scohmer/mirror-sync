@@ -12,7 +12,7 @@ Environment=IMAGE=debian-mirror:latest
 Environment=CTX=./deb.debian.org
 Environment=DEB_TARGET=/srv/apt/apt-mirror
 Environment="SUITES=bullseye bookworm trixie"
-Environment=ARCHS=amd64
+Environment="ARCHS=amd64,i386"
 Environment=THREADS=20
 Environment=INCLUDE_UPDATES=true
 Environment=INCLUDE_BACKPORTS=true
