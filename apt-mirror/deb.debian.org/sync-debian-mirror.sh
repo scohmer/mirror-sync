@@ -5,16 +5,23 @@ ARCHS="${ARCHS:-amd64}"
 THREADS="${THREADS:-20}"
 SUITES="${SUITES:-bullseye bookworm trixie}"
 INCLUDE_UPDATES="${INCLUDE_UPDATES:-true}"
-INCLUDE_BACKPORTS="${INCLUDE_BACKPORTS:-true}"   # you can set false if not needed
-METADATA_ONLY="${METADATA_ONLY:-false}"          # <-- default to full mirror
-MIRROR_ROOT="${MIRROR_ROOT:-/srv/apt/apt-mirror}"
+INCLUDE_BACKPORTS="${INCLUDE_BACKPORTS:-true}"
+MIRROR_ROOT="${MIRROR_ROOT:-/srv/apt/apt-mirror}"   # your new path
+METADATA_ONLY="${METADATA_ONLY:-false}"             # disconnected: keep packages
 
 BASE_PATH="/var/spool/apt-mirror"
 VAR_PATH="$BASE_PATH/var"
 SKEL_PATH="$BASE_PATH/skel"
-
 umask 022
 mkdir -p "$MIRROR_ROOT" "$BASE_PATH" "$VAR_PATH" "$SKEL_PATH"
+
+# Components per suite
+comps_for_suite() {
+  case "$1" in
+    bullseye) echo "main contrib non-free" ;;                       # no non-free-firmware here
+    *)        echo "main contrib non-free non-free-firmware" ;;
+  esac
+}
 
 {
   echo "set base_path    $BASE_PATH"
@@ -28,20 +35,20 @@ mkdir -p "$MIRROR_ROOT" "$BASE_PATH" "$VAR_PATH" "$SKEL_PATH"
   echo
 
   for s in $SUITES; do
-    echo "deb [arch=$ARCHS] http://deb.debian.org/debian $s main contrib non-free non-free-firmware"
+    comps="$(comps_for_suite "$s")"
+    echo "deb [arch=$ARCHS] http://deb.debian.org/debian $s $comps"
     if [[ "$INCLUDE_UPDATES" == "true" ]]; then
-      echo "deb [arch=$ARCHS] http://deb.debian.org/debian ${s}-updates main contrib non-free non-free-firmware"
+      echo "deb [arch=$ARCHS] http://deb.debian.org/debian ${s}-updates $comps"
     fi
     if [[ "$INCLUDE_BACKPORTS" == "true" ]]; then
-      echo "deb [arch=$ARCHS] http://deb.debian.org/debian ${s}-backports main contrib non-free non-free-firmware"
+      echo "deb [arch=$ARCHS] http://deb.debian.org/debian ${s}-backports $comps"
     fi
   done
-
   echo
   for s in $SUITES; do
-    echo "deb [arch=$ARCHS] http://security.debian.org/debian-security ${s}-security main contrib non-free non-free-firmware"
+    comps="$(comps_for_suite "$s")"
+    echo "deb [arch=$ARCHS] http://security.debian.org/debian-security ${s}-security $comps"
   done
-
   echo
   echo "clean http://deb.debian.org/debian"
   echo "clean http://security.debian.org/debian-security"
@@ -51,9 +58,8 @@ echo "=== Running apt-mirror for: $SUITES (archs: $ARCHS) ==="
 apt-mirror
 echo "=== apt-mirror finished ==="
 
-# Keep packages for disconnected mirror — only prune if explicitly requested
+# Only prune packages if explicitly asked (not for disconnected mirrors)
 if [[ "$METADATA_ONLY" == "true" ]]; then
-  echo "=== Pruning pool/ (metadata-only requested) ==="
   find "$MIRROR_ROOT" -type d -name pool -prune -exec rm -rf {} +
 fi
 

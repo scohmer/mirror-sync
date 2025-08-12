@@ -1,17 +1,15 @@
-# debian-12.Containerfile
 FROM debian:12-slim
 
-RUN apt-get update && apt-get install -y apt-mirror ca-certificates \
+RUN apt-get update && apt-get install -y \
+      apt-mirror ca-certificates xz-utils bzip2 gnupg \
     && apt-get clean \
     && rm -rf /var/lib/apt/lists/*
 
-# Create mount point
+# Target mount point (your new path)
 RUN mkdir -p /srv/apt/apt-mirror
 
-# Copy build script
 COPY sync-debian-mirror.sh /usr/local/bin/sync-debian-mirror.sh
 RUN chmod +x /usr/local/bin/sync-debian-mirror.sh
 
 VOLUME ["/srv/apt/apt-mirror"]
-
 ENTRYPOINT ["/usr/local/bin/sync-debian-mirror.sh"]
