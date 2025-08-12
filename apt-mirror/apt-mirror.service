@@ -1,0 +1,29 @@
+[Unit]
+Description=Build image and sync Debian mirror with apt-mirror
+Wants=network-online.target
+After=network-online.target
+
+[Service]
+Type=oneshot
+# Adjust to where your repo lives:
+WorkingDirectory=/opt/mirror-sync
+# Environment defaults (override with a drop-in if you like)
+Environment=IMAGE=debian-mirror:latest
+Environment=CTX=./deb.debian.org
+Environment=DEB_TARGET=/srv/apt/apt-mirror
+Environment=SUITES=bullseye bookworm trixie
+Environment=ARCHS=amd64
+Environment=THREADS=20
+Environment=INCLUDE_UPDATES=true
+Environment=INCLUDE_BACKPORTS=true
+Environment=METADATA_ONLY=false
+ExecStart=/opt/mirror-sync/build-and-sync.sh
+# Give big mirrors time to complete
+TimeoutStartSec=12h
+# Be nice to the box
+Nice=10
+IOSchedulingClass=best-effort
+IOSchedulingPriority=7
+# Log to journal
+StandardOutput=journal
+StandardError=journal

@@ -1,0 +1,13 @@
+[Unit]
+Description=Run Debian apt-mirror sync daily
+
+[Timer]
+# Every day at 03:30 local
+OnCalendar=*-*-* 03:30:00
+# Jitter so multiple mirrors don't hammer at once
+RandomizedDelaySec=30m
+Persistent=true
+AccuracySec=1min
+
+[Install]
+WantedBy=timers.target
