@@ -1,13 +1,20 @@
 #!/usr/bin/env bash
 set -euo pipefail
 
+# ---- Config (override via env) ----
 IMAGE="${IMAGE:-debian-mirror:latest}"
-CTX="${CTX:-./deb.debian.org}"
+CTX="${CTX:-./deb.debian.org}"                  # directory containing your Containerfile
+DEB_TARGET="${DEB_TARGET:-/srv/apt/apt-mirror}" # host directory to store the mirror
 
-# Single root for everything apt-mirror writes (main + security)
-# Use the new, shorter path you picked earlier
-DEB_TARGET="${DEB_TARGET:-/srv/apt/apt-mirror}"
+# Mirror behavior (passed into the container entrypoint)
+SUITES="${SUITES:-bullseye bookworm trixie}"    # Debian 11/12/13
+ARCHS="${ARCHS:-amd64}"
+THREADS="${THREADS:-20}"
+INCLUDE_UPDATES="${INCLUDE_UPDATES:-true}"
+INCLUDE_BACKPORTS="${INCLUDE_BACKPORTS:-true}"
+METADATA_ONLY="${METADATA_ONLY:-false}"         # disconnected mirror => keep packages by default
 
+# Logging
 LOG_DIR="${LOG_DIR:-/opt/mirror-sync/apt-mirror/log}"
 mkdir -p "$LOG_DIR"
 
@@ -18,25 +25,28 @@ echo "[✓] Built $IMAGE (log: $LOG_DIR/build.log)"
 echo "[*] Preparing target..."
 sudo mkdir -p "$DEB_TARGET"
 sudo chown root:root "$DEB_TARGET"
-# SELinux: either keep this chcon and drop :Z below, or remove this and keep :Z.
-sudo chcon -Rt container_file_t "$DEB_TARGET" || true
+
+# If your host uses SELinux, EITHER keep :Z on the volume OR run chcon once.
+# We'll keep :Z on the volume to avoid permanent relabeling here.
+# sudo chcon -Rt container_file_t "$DEB_TARGET" || true
 
 echo "[*] Running sync via apt-mirror..."
-# Env vars consumed by /usr/local/bin/sync-debian-mirror.sh in the container
-# Defaults: Debian 11/12/13, amd64, FULL mirror for disconnected use
-podman run --rm --name debian-apt-mirror \
-  -e SUITES="${SUITES:-bullseye bookworm trixie}" \
-  -e ARCHS="${ARCHS:-amd64}" \
-  -e THREADS="${THREADS:-20}" \
-  -e INCLUDE_UPDATES="${INCLUDE_UPDATES:-true}" \
-  -e INCLUDE_BACKPORTS="${INCLUDE_BACKPORTS:-true}" \
-  -e METADATA_ONLY="${METADATA_ONLY:-false}" \
+# The container must have /usr/local/bin/sync-debian-mirror.sh as provided earlier.
+if ! podman run --rm --name debian-apt-mirror \
+  -e SUITES="$SUITES" \
+  -e ARCHS="$ARCHS" \
+  -e THREADS="$THREADS" \
+  -e INCLUDE_UPDATES="$INCLUDE_UPDATES" \
+  -e INCLUDE_BACKPORTS="$INCLUDE_BACKPORTS" \
+  -e METADATA_ONLY="$METADATA_ONLY" \
   -e MIRROR_ROOT="$DEB_TARGET" \
-  -v "$DEB_TARGET:$DEB_TARGET" \   # no :Z since we ran chcon above
+  -v "$DEB_TARGET:$DEB_TARGET:Z" \
   --entrypoint /usr/local/bin/sync-debian-mirror.sh \
-  "$IMAGE" >"$LOG_DIR/run.log" 2>&1 || {
-    echo "[x] Sync failed. See $LOG_DIR/run.log"; exit 1;
-  }
+  "$IMAGE" >"$LOG_DIR/run.log" 2>&1
+then
+  echo "[x] Sync failed. See $LOG_DIR/run.log"
+  exit 1
+fi
 
 echo "[✓] Sync complete at: $DEB_TARGET"
 echo "Log: $LOG_DIR/run.log"
