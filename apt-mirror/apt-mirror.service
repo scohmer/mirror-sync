@@ -11,7 +11,7 @@ WorkingDirectory=/opt/mirror-sync
 Environment=IMAGE=debian-mirror:latest
 Environment=CTX=./deb.debian.org
 Environment=DEB_TARGET=/srv/apt/apt-mirror
-Environment=SUITES=bullseye bookworm trixie
+Environment="SUITES=bullseye bookworm trixie"
 Environment=ARCHS=amd64
 Environment=THREADS=20
 Environment=INCLUDE_UPDATES=true
