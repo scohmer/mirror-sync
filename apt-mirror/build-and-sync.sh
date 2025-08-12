@@ -4,7 +4,7 @@ set -euo pipefail
 # ---- Config (override via env) ----
 IMAGE="${IMAGE:-debian-mirror:latest}"
 CTX="${CTX:-./deb.debian.org}"                  # directory containing your Containerfile
-DEB_TARGET="${DEB_TARGET:-/srv/apt/apt-mirror}" # host directory to store the mirror
+DEB_TARGET="${DEB_TARGET:-/srv/apt/debian}" # host directory to store the mirror
 
 # Mirror behavior (passed into the container entrypoint)
 SUITES="${SUITES:-bullseye bookworm trixie}"    # Debian 11/12/13

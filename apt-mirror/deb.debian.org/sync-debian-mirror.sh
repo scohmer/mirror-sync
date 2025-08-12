@@ -8,7 +8,7 @@ SUITES="${SUITES:-bullseye bookworm trixie}"
 INCLUDE_UPDATES="${INCLUDE_UPDATES:-true}"
 INCLUDE_BACKPORTS="${INCLUDE_BACKPORTS:-true}"
 METADATA_ONLY="${METADATA_ONLY:-false}"
-MIRROR_ROOT="${MIRROR_ROOT:-/srv/apt/apt-mirror}"
+MIRROR_ROOT="${MIRROR_ROOT:-/srv/apt/debian}"
 
 # Internal apt-mirror state paths (now under MIRROR_ROOT)
 BASE_PATH="/var/spool/apt-mirror"      # still required but can be minimal

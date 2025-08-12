@@ -6,10 +6,10 @@ RUN apt-get update && apt-get install -y \
     && rm -rf /var/lib/apt/lists/*
 
 # Target mount point (your new path)
-RUN mkdir -p /srv/apt/apt-mirror
+RUN mkdir -p /srv/apt/debian
 
 COPY sync-debian-mirror.sh /usr/local/bin/sync-debian-mirror.sh
 RUN chmod +x /usr/local/bin/sync-debian-mirror.sh
 
-VOLUME ["/srv/apt/apt-mirror"]
+VOLUME ["/srv/apt/debian"]
 ENTRYPOINT ["/usr/local/bin/sync-debian-mirror.sh"]
