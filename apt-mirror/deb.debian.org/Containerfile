@@ -9,9 +9,9 @@ RUN apt-get update && apt-get install -y apt-mirror ca-certificates \
 RUN mkdir -p /srv/apt/debian/deb.debian.org/debian
 
 # Copy build script
-COPY build-and-sync.sh /usr/local/bin/build-and-sync.sh
-RUN chmod +x /usr/local/bin/build-and-sync.sh
+COPY build-and-sync.sh /usr/local/bin/sync-debian-mirror.sh
+RUN chmod +x /usr/local/bin/sync-debian-mirror.sh
 
 VOLUME ["/srv/apt/debian/deb.debian.org/debian"]
 
-ENTRYPOINT ["/usr/local/bin/build-and-sync.sh"]
+ENTRYPOINT ["/usr/local/bin/sync-debian-mirror.sh"]
