@@ -10,6 +10,7 @@ DEB_TARGET="${DEB_TARGET:-/srv/apt/debian}" # host directory to store the mirror
 SUITES="${SUITES:-bullseye bookworm trixie}"    # Debian 11/12/13
 ARCHS="${ARCHS:-amd64}"
 THREADS="${THREADS:-20}"
+INCLUDE_SOURCES="${INCLUDE_SOURCES:-true}"
 INCLUDE_UPDATES="${INCLUDE_UPDATES:-true}"
 INCLUDE_BACKPORTS="${INCLUDE_BACKPORTS:-true}"
 METADATA_ONLY="${METADATA_ONLY:-false}"         # disconnected mirror => keep packages by default
@@ -36,6 +37,7 @@ if ! podman run --rm --name debian-apt-mirror \
   -e SUITES="$SUITES" \
   -e ARCHS="$ARCHS" \
   -e THREADS="$THREADS" \
+  -e INCLUDE_SOURCES="$INCLUDE_SOURCES" \
   -e INCLUDE_UPDATES="$INCLUDE_UPDATES" \
   -e INCLUDE_BACKPORTS="$INCLUDE_BACKPORTS" \
   -e METADATA_ONLY="$METADATA_ONLY" \
