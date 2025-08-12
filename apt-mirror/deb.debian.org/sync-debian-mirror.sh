@@ -14,7 +14,7 @@ MIRROR_ROOT="${MIRROR_ROOT:-/srv/apt/apt-mirror}"
 # Internal apt-mirror state inside container
 BASE_PATH="/var/spool/apt-mirror"
 VAR_PATH="$MIRROR_ROOT/var"
-SKEL_PATH="$MIRROR_ROOT/skel"
+SKEL_PATH="$MIRROR_ROOT"
 
 umask 022
 mkdir -p "$MIRROR_ROOT" "$VAR_PATH" "$SKEL_PATH"
