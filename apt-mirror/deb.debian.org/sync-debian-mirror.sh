@@ -2,7 +2,7 @@
 set -Eeuo pipefail
 
 # ========= Config (override via env) =========
-ARCHS="${ARCHS:-amd64}"                 # e.g. "amd64" or "amd64,i386"
+ARCHS="${ARCHS:-amd64,i386}"                 # e.g. "amd64" or "amd64,i386"
 THREADS="${THREADS:-20}"
 SUITES="${SUITES:-bullseye bookworm trixie}"
 INCLUDE_UPDATES="${INCLUDE_UPDATES:-true}"
