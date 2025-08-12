@@ -16,6 +16,7 @@ Environment="ARCHS=amd64,i386"
 Environment=THREADS=20
 Environment=INCLUDE_UPDATES=true
 Environment=INCLUDE_BACKPORTS=true
+Environment=INCLUDE_SOURCES=true
 Environment=METADATA_ONLY=false
 ExecStart=/opt/mirror-sync/build-and-sync.sh
 # Give big mirrors time to complete
