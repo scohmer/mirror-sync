@@ -1,15 +1,33 @@
+# debian-12.Containerfile
 FROM debian:12-slim
 
+# Install tools apt-mirror relies on + curl for fetching upstream script
 RUN apt-get update && apt-get install -y \
-      apt-mirror ca-certificates xz-utils bzip2 gnupg \
+      apt-mirror \
+      ca-certificates \
+      xz-utils \
+      bzip2 \
+      gnupg \
+      curl \
     && apt-get clean \
     && rm -rf /var/lib/apt/lists/*
 
-# Target mount point (your new path)
-RUN mkdir -p /srv/apt/debian
+# Replace Debian-packaged /usr/bin/apt-mirror with upstream (fixes Sources parsing warnings)
+# Keep a backup and only replace if download succeeds.
+RUN set -e; \
+    saved="$(mktemp)"; \
+    cp /usr/bin/apt-mirror "$saved"; \
+    curl -fsSL https://raw.githubusercontent.com/apt-mirror/apt-mirror/master/apt-mirror \
+      -o /usr/bin/apt-mirror && \
+    chmod +x /usr/bin/apt-mirror || { mv "$saved" /usr/bin/apt-mirror; exit 1; }
 
+# Mirror root (bind-mounted from host)
+RUN mkdir -p /srv/apt/apt-mirror
+
+# Your entrypoint script (already updated to include deb-src, backports archive for bullseye, etc.)
 COPY sync-debian-mirror.sh /usr/local/bin/sync-debian-mirror.sh
 RUN chmod +x /usr/local/bin/sync-debian-mirror.sh
 
-VOLUME ["/srv/apt/debian"]
+VOLUME ["/srv/apt/apt-mirror"]
+
 ENTRYPOINT ["/usr/local/bin/sync-debian-mirror.sh"]
