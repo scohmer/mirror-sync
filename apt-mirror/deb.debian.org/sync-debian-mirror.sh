@@ -1,51 +1,60 @@
 #!/bin/bash
 set -Eeuo pipefail
 
-# Configurables via env (override at run time if you like)
 ARCHS="${ARCHS:-amd64}"
 THREADS="${THREADS:-20}"
-MIRROR_ROOT="${MIRROR_ROOT:-/srv/apt/debian/deb.debian.org/debian}"
+SUITES="${SUITES:-bullseye bookworm trixie}"
+INCLUDE_UPDATES="${INCLUDE_UPDATES:-true}"
+INCLUDE_BACKPORTS="${INCLUDE_BACKPORTS:-true}"   # you can set false if not needed
+METADATA_ONLY="${METADATA_ONLY:-false}"          # <-- default to full mirror
+MIRROR_ROOT="${MIRROR_ROOT:-/srv/apt/apt-mirror}"
 
-# Internal apt-mirror paths (state/spool live inside the container)
 BASE_PATH="/var/spool/apt-mirror"
 VAR_PATH="$BASE_PATH/var"
 SKEL_PATH="$BASE_PATH/skel"
 
+umask 022
 mkdir -p "$MIRROR_ROOT" "$BASE_PATH" "$VAR_PATH" "$SKEL_PATH"
 
-# Suites for Debian 11/12/13
-# 11 -> bullseye, 12 -> bookworm, 13 -> trixie
-cat > /etc/apt/mirror.list <<EOF
-set base_path    $BASE_PATH
-set mirror_path  $MIRROR_ROOT
-set skel_path    $SKEL_PATH
-set var_path     $VAR_PATH
-set cleanscript  \$var_path/clean.sh
-set defaultarch  ${ARCHS%%,*}     # first arch if multiple provided
-set nthreads     $THREADS
-set _tilde       0
+{
+  echo "set base_path    $BASE_PATH"
+  echo "set mirror_path  $MIRROR_ROOT"
+  echo "set skel_path    $SKEL_PATH"
+  echo "set var_path     $VAR_PATH"
+  echo "set cleanscript  \$var_path/clean.sh"
+  echo "set defaultarch  ${ARCHS%%,*}"
+  echo "set nthreads     $THREADS"
+  echo "set _tilde       0"
+  echo
 
-# Main repositories
-deb [arch=$ARCHS] http://deb.debian.org/debian bullseye main contrib non-free non-free-firmware
-deb [arch=$ARCHS] http://deb.debian.org/debian bookworm main contrib non-free non-free-firmware
-deb [arch=$ARCHS] http://deb.debian.org/debian trixie   main contrib non-free non-free-firmware
+  for s in $SUITES; do
+    echo "deb [arch=$ARCHS] http://deb.debian.org/debian $s main contrib non-free non-free-firmware"
+    if [[ "$INCLUDE_UPDATES" == "true" ]]; then
+      echo "deb [arch=$ARCHS] http://deb.debian.org/debian ${s}-updates main contrib non-free non-free-firmware"
+    fi
+    if [[ "$INCLUDE_BACKPORTS" == "true" ]]; then
+      echo "deb [arch=$ARCHS] http://deb.debian.org/debian ${s}-backports main contrib non-free non-free-firmware"
+    fi
+  done
 
-# Security repositories
-deb [arch=$ARCHS] http://security.debian.org/debian-security bullseye-security main contrib non-free non-free-firmware
-deb [arch=$ARCHS] http://security.debian.org/debian-security bookworm-security main contrib non-free non-free-firmware
-deb [arch=$ARCHS] http://security.debian.org/debian-security trixie-security   main contrib non-free non-free-firmware
+  echo
+  for s in $SUITES; do
+    echo "deb [arch=$ARCHS] http://security.debian.org/debian-security ${s}-security main contrib non-free non-free-firmware"
+  done
 
-# Clean directives
-clean http://deb.debian.org/debian
-clean http://security.debian.org/debian-security
-EOF
+  echo
+  echo "clean http://deb.debian.org/debian"
+  echo "clean http://security.debian.org/debian-security"
+} > /etc/apt/mirror.list
 
-echo "=== Starting apt-mirror sync for Debian 11/12/13 (bullseye/bookworm/trixie) ==="
+echo "=== Running apt-mirror for: $SUITES (archs: $ARCHS) ==="
 apt-mirror
-echo "=== apt-mirror finished; pruning package pools (metadata-only mirror) ==="
+echo "=== apt-mirror finished ==="
 
-# Remove any pool/ directories to keep only dists/ metadata
-# This intentionally removes packages for all suites to keep the mirror lightweight.
-find "$MIRROR_ROOT" -type d -name pool -prune -exec rm -rf {} +
+# Keep packages for disconnected mirror — only prune if explicitly requested
+if [[ "$METADATA_ONLY" == "true" ]]; then
+  echo "=== Pruning pool/ (metadata-only requested) ==="
+  find "$MIRROR_ROOT" -type d -name pool -prune -exec rm -rf {} +
+fi
 
-echo "=== Done. dists/ metadata for 11/12/13 is synced under: $MIRROR_ROOT ==="
+echo "=== Done. Mirror at: $MIRROR_ROOT ==="

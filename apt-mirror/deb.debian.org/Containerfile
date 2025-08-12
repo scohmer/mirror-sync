@@ -6,12 +6,12 @@ RUN apt-get update && apt-get install -y apt-mirror ca-certificates \
     && rm -rf /var/lib/apt/lists/*
 
 # Create mount point
-RUN mkdir -p /srv/apt/debian/deb.debian.org/debian
+RUN mkdir -p /srv/apt/apt-mirror
 
 # Copy build script
 COPY build-and-sync.sh /usr/local/bin/sync-debian-mirror.sh
 RUN chmod +x /usr/local/bin/sync-debian-mirror.sh
 
-VOLUME ["/srv/apt/debian/deb.debian.org/debian"]
+VOLUME ["/srv/apt/apt-mirror"]
 
 ENTRYPOINT ["/usr/local/bin/sync-debian-mirror.sh"]
