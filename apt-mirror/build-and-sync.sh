@@ -8,7 +8,7 @@ DEB_TARGET="${DEB_TARGET:-/srv/apt/debian}" # host directory to store the mirror
 
 # Mirror behavior (passed into the container entrypoint)
 SUITES="${SUITES:-bullseye bookworm trixie}"    # Debian 11/12/13
-ARCHS="${ARCHS:-amd64}"
+ARCHS="${ARCHS:-amd64,i386}"
 THREADS="${THREADS:-20}"
 INCLUDE_SOURCES="${INCLUDE_SOURCES:-true}"
 INCLUDE_UPDATES="${INCLUDE_UPDATES:-true}"
