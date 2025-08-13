@@ -1,0 +1,36 @@
+# /etc/systemd/system/ubuntu-mirror-sync.service
+[Unit]
+Description=Build image and sync Ubuntu mirrors with apt-mirror
+Wants=network-online.target
+After=network-online.target
+
+[Service]
+Type=oneshot
+# Adjust to where your repo lives:
+WorkingDirectory=/opt/mirror-sync/apt-mirror
+
+# Environment defaults (override with a drop-in or EnvironmentFile if desired)
+Environment=IMAGE=ubuntu-mirror:latest
+Environment=CTX=./archive.ubuntu.com
+Environment=UBU_TARGET=/srv/apt/ubuntu/archive.ubuntu.com/ubuntu
+Environment="UBUNTU_VERSIONS=20.04 22.04 24.04 25.04"
+Environment="ARCHS=amd64,i386"
+Environment=THREADS=20
+Environment=INCLUDE_UPDATES=true
+Environment=INCLUDE_BACKPORTS=true
+Environment=INCLUDE_SOURCES=true
+Environment=METADATA_ONLY=false
+Environment=UBUNTU_MIRROR=http://archive.ubuntu.com/ubuntu
+Environment=UBUNTU_SECURITY_MIRROR=http://security.ubuntu.com/ubuntu
+
+ExecStart=/opt/mirror-sync/apt-mirror/ubuntu-build-and-sync.sh
+
+# Give big mirrors time to complete
+TimeoutStartSec=12h
+# Be nice to the box
+Nice=10
+IOSchedulingClass=best-effort
+IOSchedulingPriority=7
+# Log to journal
+StandardOutput=journal
+StandardError=journal
