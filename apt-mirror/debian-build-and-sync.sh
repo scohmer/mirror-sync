@@ -16,7 +16,7 @@ INCLUDE_BACKPORTS="${INCLUDE_BACKPORTS:-true}"
 METADATA_ONLY="${METADATA_ONLY:-false}"         # disconnected mirror => keep packages by default
 
 # Logging
-LOG_DIR="${LOG_DIR:-/opt/mirror-sync/apt-mirror/log}"
+LOG_DIR="${LOG_DIR:-/opt/mirror-sync/apt-mirror/debian-log}"
 mkdir -p "$LOG_DIR"
 
 echo "[*] Building image..."

@@ -20,7 +20,7 @@ UBUNTU_MIRROR="${UBUNTU_MIRROR:-http://archive.ubuntu.com/ubuntu}"
 UBUNTU_SECURITY_MIRROR="${UBUNTU_SECURITY_MIRROR:-http://security.ubuntu.com/ubuntu}"
 
 # Logging
-LOG_DIR="${LOG_DIR:-/opt/mirror-sync/apt-mirror/log}"
+LOG_DIR="${LOG_DIR:-/opt/mirror-sync/apt-mirror/ubuntu-log}"
 mkdir -p "$LOG_DIR"
 
 echo "[*] Building image from $CTX..."

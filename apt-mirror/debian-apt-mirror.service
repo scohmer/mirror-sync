@@ -6,11 +6,11 @@ After=network-online.target
 [Service]
 Type=oneshot
 # Adjust to where your repo lives:
-WorkingDirectory=/opt/mirror-sync
+WorkingDirectory=/opt/mirror-sync/apt-mirror
 # Environment defaults (override with a drop-in if you like)
 Environment=IMAGE=debian-mirror:latest
 Environment=CTX=./deb.debian.org
-Environment=DEB_TARGET=/srv/apt/apt-mirror
+Environment=DEB_TARGET=/srv/apt/debian
 Environment="SUITES=bullseye bookworm trixie"
 Environment="ARCHS=amd64,i386"
 Environment=THREADS=20
@@ -18,7 +18,7 @@ Environment=INCLUDE_UPDATES=true
 Environment=INCLUDE_BACKPORTS=true
 Environment=INCLUDE_SOURCES=true
 Environment=METADATA_ONLY=false
-ExecStart=/opt/mirror-sync/build-and-sync.sh
+ExecStart=/opt/mirror-sync/apt-mirror/debian-build-and-sync.sh
 # Give big mirrors time to complete
 TimeoutStartSec=12h
 # Be nice to the box
