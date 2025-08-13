@@ -9,7 +9,7 @@ INCLUDE_UPDATES="${INCLUDE_UPDATES:-true}"
 INCLUDE_BACKPORTS="${INCLUDE_BACKPORTS:-true}"
 INCLUDE_SOURCES="${INCLUDE_SOURCES:-true}" # now defaults to true
 METADATA_ONLY="${METADATA_ONLY:-false}"    # disconnected mirror => keep packages by default
-MIRROR_ROOT="${MIRROR_ROOT:-/srv/apt/apt-mirror}"
+MIRROR_ROOT="${MIRROR_ROOT:-/srv/apt/debian}"
 
 # Internal apt-mirror state inside container
 BASE_PATH="/var/spool/apt-mirror"
