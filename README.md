@@ -1,5 +1,3 @@
-# BROKEN - DO NOT USE
-
 # Mirror Sync Project
 
 This project is intended to modularize the syncronization of several available Linux distro mirrors. The overall strategy is to:
