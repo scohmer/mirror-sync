@@ -55,14 +55,16 @@ backports_url_for_suite() {
     comps="$(comps_for_suite "$s")"
 
     # main
-    echo "deb [arch=$ARCHS] http://deb.debian.org/debian $s $comps"
+    echo "deb http://deb.debian.org/debian $s $comps"
+    echo "deb-i386 http://deb.debian.org/debian $s $comps"
     if [[ "$INCLUDE_SOURCES" == "true" ]]; then
       echo "deb-src http://deb.debian.org/debian $s $comps"
     fi
 
     # -updates
     if [[ "$INCLUDE_UPDATES" == "true" ]]; then
-      echo "deb [arch=$ARCHS] http://deb.debian.org/debian ${s}-updates $comps"
+      echo "deb http://deb.debian.org/debian ${s}-updates $comps"
+      echo "deb-i386 http://deb.debian.org/debian ${s}-updates $comps"
       if [[ "$INCLUDE_SOURCES" == "true" ]]; then
         echo "deb-src http://deb.debian.org/debian ${s}-updates $comps"
       fi
@@ -71,7 +73,8 @@ backports_url_for_suite() {
     # -backports
     if [[ "$INCLUDE_BACKPORTS" == "true" ]]; then
       bkp_url="$(backports_url_for_suite "$s")"
-      echo "deb [arch=$ARCHS] $bkp_url ${s}-backports $comps"
+      echo "deb $bkp_url ${s}-backports $comps"
+      echo "deb-i386 $bkp_url ${s}-backports $comps"
       if [[ "$INCLUDE_SOURCES" == "true" ]]; then
         echo "deb-src $bkp_url ${s}-backports $comps"
       fi
@@ -83,7 +86,8 @@ backports_url_for_suite() {
   # Security for each suite
   for s in $SUITES; do
     comps="$(comps_for_suite "$s")"
-    echo "deb [arch=$ARCHS] http://security.debian.org/debian-security ${s}-security $comps"
+    echo "deb http://security.debian.org/debian-security ${s}-security $comps"
+    echo "deb-i386 http://security.debian.org/debian-security ${s}-security $comps"
     if [[ "$INCLUDE_SOURCES" == "true" ]]; then
       echo "deb-src http://security.debian.org/debian-security ${s}-security $comps"
     fi
