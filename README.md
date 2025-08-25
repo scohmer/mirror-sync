@@ -26,7 +26,45 @@ The project follows a containerized approach with shared components:
 
 ## Quick Start
 
-### 1. Initial Setup
+### One-Click Setup (Recommended)
+
+Get started immediately with the automated setup script:
+
+```bash
+# Clone the repository
+git clone https://github.com/scohmer/mirror-sync.git
+cd mirror-sync
+
+# Run the one-click setup (checks requirements, creates directories, builds images, starts syncing)
+./start
+
+# Monitor progress
+./scripts/monitor-mirrors.sh
+```
+
+The `start` script automatically:
+- ✅ Checks system requirements (container runtime, tools)  
+- ✅ Creates mirror and log directories with proper permissions
+- ✅ Detects disk space and warns about storage requirements
+- ✅ Builds all container images (Debian, Ubuntu, Rocky)
+- ✅ Starts all repository syncs in the background
+- ✅ Provides monitoring commands and next steps
+
+**Available commands:**
+```bash
+./start                    # Complete setup and start syncing (default)
+./start requirements       # Check system requirements only
+./start directories        # Create directories only  
+./start build             # Build container images only
+./start sync              # Start repository syncs only
+./start help              # Show all options
+```
+
+### Manual Setup
+
+If you prefer step-by-step setup:
+
+#### 1. Initial Setup
 
 ```bash
 # Clone and enter the repository

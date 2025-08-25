@@ -1,0 +1,340 @@
+#!/usr/bin/env bash
+# Mirror Sync - One-Click Setup and Start Script
+# This script handles all initial configuration and starts syncing all repositories
+
+set -euo pipefail
+
+# Colors for output
+if [[ -t 1 ]] && command -v tput >/dev/null 2>&1 && [[ $(tput colors 2>/dev/null || echo 0) -ge 8 ]]; then
+    BOLD=$(tput bold)
+    RED=$(tput setaf 1)
+    GREEN=$(tput setaf 2)
+    YELLOW=$(tput setaf 3)
+    BLUE=$(tput setaf 4)
+    RESET=$(tput sgr0)
+else
+    BOLD="" RED="" GREEN="" YELLOW="" BLUE="" RESET=""
+fi
+
+# Get project root
+PROJECT_ROOT="$(cd "$(dirname "${BASH_SOURCE[0]}")" && pwd)"
+cd "$PROJECT_ROOT"
+
+# Load common functions
+source lib/common.sh
+load_config
+
+echo "${BLUE}${BOLD}"
+echo "=========================================="
+echo "  Mirror Sync - Quick Start Setup"
+echo "=========================================="
+echo "${RESET}"
+echo "This script will:"
+echo "  ${GREEN}✓${RESET} Check system requirements"
+echo "  ${GREEN}✓${RESET} Create necessary directories"
+echo "  ${GREEN}✓${RESET} Build container images"
+echo "  ${GREEN}✓${RESET} Start syncing all repositories"
+echo
+
+# Function to check and install requirements
+check_requirements() {
+    echo "${YELLOW}${BOLD}=== Checking System Requirements ===${RESET}"
+    
+    local missing_deps=()
+    
+    # Check for container runtime
+    if ! command -v podman >/dev/null 2>&1 && ! command -v docker >/dev/null 2>&1; then
+        missing_deps+=("podman or docker")
+    else
+        if command -v podman >/dev/null 2>&1; then
+            echo "  ${GREEN}✓${RESET} Container runtime: podman $(podman --version | cut -d' ' -f3)"
+        else
+            echo "  ${GREEN}✓${RESET} Container runtime: docker $(docker --version | cut -d' ' -f3)"
+        fi
+    fi
+    
+    # Check for required tools
+    local required_tools=("curl" "find" "du" "df")
+    local optional_tools=("wget" "rsync")
+    
+    for tool in "${required_tools[@]}"; do
+        if command -v "$tool" >/dev/null 2>&1; then
+            echo "  ${GREEN}✓${RESET} $tool available"
+        else
+            missing_deps+=("$tool")
+        fi
+    done
+    
+    for tool in "${optional_tools[@]}"; do
+        if command -v "$tool" >/dev/null 2>&1; then
+            echo "  ${GREEN}✓${RESET} $tool available"
+        else
+            echo "  ${YELLOW}!${RESET} $tool not found (optional)"
+        fi
+    done
+    
+    if [[ ${#missing_deps[@]} -gt 0 ]]; then
+        echo "  ${RED}✗${RESET} Missing dependencies: ${missing_deps[*]}"
+        echo
+        echo "${YELLOW}Please install the missing dependencies:${RESET}"
+        
+        # Provide installation hints based on OS
+        if [[ -f /etc/redhat-release ]]; then
+            echo "  ${BLUE}RHEL/CentOS/Rocky:${RESET} sudo dnf install ${missing_deps[*]}"
+        elif [[ -f /etc/debian_version ]]; then
+            echo "  ${BLUE}Debian/Ubuntu:${RESET} sudo apt-get install ${missing_deps[*]}"
+        elif [[ \"$(uname)\" == "Darwin" ]]; then
+            echo "  ${BLUE}macOS:${RESET} brew install ${missing_deps[*]}"
+        fi
+        echo
+        exit 1
+    fi
+    
+    echo "  ${GREEN}${BOLD}All requirements satisfied!${RESET}"
+    echo
+}
+
+# Function to create directories with proper permissions
+setup_directories() {
+    echo "${YELLOW}${BOLD}=== Setting Up Directories ===${RESET}"
+    
+    # Determine base mirror directory - override if /srv isn't writable
+    local base_mirror_dir="$BASE_MIRROR_DIR"
+    if [[ "$base_mirror_dir" == "/srv/mirrors" ]] && [[ ! -w "$(dirname "/srv/mirrors")" ]] 2>/dev/null; then
+        base_mirror_dir="$HOME/mirrors"
+        echo "  ${YELLOW}Note:${RESET} Using $base_mirror_dir (no write access to /srv)"
+        # Export the override for later use
+        export BASE_MIRROR_DIR="$base_mirror_dir"
+        export DEBIAN_TARGET="$base_mirror_dir/debian"
+        export UBUNTU_TARGET="$base_mirror_dir/ubuntu"
+        export ROCKY_TARGET="$base_mirror_dir/rocky"
+    fi
+    
+    local dirs=(
+        "$base_mirror_dir"
+        "$base_mirror_dir/debian"
+        "$base_mirror_dir/ubuntu"
+        "$base_mirror_dir/rocky"
+        "${BASE_LOG_DIR:-$PROJECT_ROOT/logs}"
+        "${BASE_LOG_DIR:-$PROJECT_ROOT/logs}/debian"
+        "${BASE_LOG_DIR:-$PROJECT_ROOT/logs}/ubuntu"
+        "${BASE_LOG_DIR:-$PROJECT_ROOT/logs}/rocky"
+    )
+    
+    for dir in "${dirs[@]}"; do
+        if [[ ! -d "$dir" ]]; then
+            if mkdir -p "$dir" 2>/dev/null; then
+                echo "  ${GREEN}✓${RESET} Created directory: $dir"
+            else
+                echo "  ${YELLOW}!${RESET} Creating with sudo: $dir"
+                sudo mkdir -p "$dir"
+                sudo chown "$(whoami):$(id -gn)" "$dir" 2>/dev/null || true
+                echo "  ${GREEN}✓${RESET} Created directory: $dir"
+            fi
+        else
+            echo "  ${GREEN}✓${RESET} Directory exists: $dir"
+        fi
+    done
+    echo
+}
+
+# Function to check available disk space and warn user
+check_disk_space() {
+    echo "${YELLOW}${BOLD}=== Checking Available Disk Space ===${RESET}"
+    
+    local mirror_dir="${BASE_MIRROR_DIR:-/srv/mirrors}"
+    local available_gb
+    available_gb=$(df "$mirror_dir" | awk 'NR==2 {print int($4/1024/1024)}')
+    
+    echo "  ${BLUE}Mirror directory:${RESET} $mirror_dir"
+    echo "  ${BLUE}Available space:${RESET} ${available_gb}GB"
+    echo
+    
+    echo "${BLUE}${BOLD}Estimated space requirements:${RESET}"
+    echo "  ${YELLOW}Debian full mirror:${RESET} ~300GB (metadata only: ~2GB)"
+    echo "  ${YELLOW}Ubuntu full mirror:${RESET} ~400GB (metadata only: ~3GB)"  
+    echo "  ${YELLOW}Rocky full mirror:${RESET} ~50GB (metadata only: ~1GB)"
+    echo "  ${YELLOW}Total for all:${RESET} ~750GB (metadata only: ~6GB)"
+    echo
+    
+    if [[ $available_gb -lt 100 ]]; then
+        echo "${RED}${BOLD}WARNING:${RESET} Low disk space detected!"
+        echo "Consider using metadata-only mode by creating config/local.conf:"
+        echo
+        echo "cat > config/local.conf << 'EOF'"
+        echo "# Metadata-only mirrors (saves disk space)"
+        echo "DEBIAN_METADATA_ONLY=\"true\""
+        echo "UBUNTU_METADATA_ONLY=\"true\""
+        echo "EOF"
+        echo
+        read -p "Continue anyway? (y/N): " -r
+        if [[ ! $REPLY =~ ^[Yy]$ ]]; then
+            echo "Setup cancelled."
+            exit 1
+        fi
+    fi
+}
+
+# Function to build all container images
+build_images() {
+    echo "${YELLOW}${BOLD}=== Building Container Images ===${RESET}"
+    
+    local images=(
+        "debian-mirror:apt-mirror/deb.debian.org"
+        "ubuntu-mirror:apt-mirror/archive.ubuntu.com"
+        "rocky-mirror:rocky/dl.rockylinux.org"
+    )
+    
+    for image_info in "${images[@]}"; do
+        local image_name="${image_info%%:*}"
+        local build_context="${image_info#*:}"
+        
+        echo "  ${BLUE}Building ${image_name}...${RESET}"
+        if build_container_image "$image_name" "./$build_context" "/tmp/build-${image_name}.log"; then
+            echo "  ${GREEN}✓${RESET} Successfully built $image_name"
+        else
+            echo "  ${RED}✗${RESET} Failed to build $image_name"
+            echo "  ${RED}Build log:${RESET} /tmp/build-${image_name}.log"
+            exit 1
+        fi
+    done
+    echo
+}
+
+# Function to start all repository syncs
+start_syncs() {
+    echo "${YELLOW}${BOLD}=== Starting Repository Syncs ===${RESET}"
+    
+    local sync_scripts=(
+        "apt-mirror/debian-build-and-sync.sh:Debian"
+        "apt-mirror/ubuntu-build-and-sync.sh:Ubuntu"  
+        "rocky/rocky-build-and-sync.sh:Rocky"
+    )
+    
+    echo "Starting all repository syncs in the background..."
+    echo "Use './scripts/monitor-mirrors.sh' to check progress"
+    echo
+    
+    for script_info in "${sync_scripts[@]}"; do
+        local script_path="${script_info%%:*}"
+        local repo_name="${script_info#*:}"
+        
+        echo "  ${BLUE}Starting $repo_name sync...${RESET}"
+        
+        if [[ -f "$script_path" ]]; then
+            # Start the sync in background
+            nohup "./$script_path" > "/tmp/${repo_name,,}-sync.log" 2>&1 &
+            local pid=$!
+            echo "  ${GREEN}✓${RESET} $repo_name sync started (PID: $pid)"
+            echo "  ${BLUE}Log:${RESET} /tmp/${repo_name,,}-sync.log"
+        else
+            echo "  ${RED}✗${RESET} Sync script not found: $script_path"
+        fi
+    done
+    echo
+}
+
+# Function to show next steps and monitoring info
+show_next_steps() {
+    echo "${GREEN}${BOLD}=== Setup Complete! ===${RESET}"
+    echo
+    echo "${BLUE}${BOLD}Your mirrors are now syncing in the background.${RESET}"
+    echo
+    echo "${YELLOW}Monitor progress with:${RESET}"
+    echo "  ./scripts/monitor-mirrors.sh          # Check status"
+    echo "  ./scripts/debug-menu.sh               # Debug menu"
+    echo "  tail -f /tmp/*-sync.log               # Watch live logs"
+    echo
+    echo "${YELLOW}Check running containers:${RESET}"
+    if command -v podman >/dev/null 2>&1; then
+        echo "  podman ps                             # Show running containers"
+    else
+        echo "  docker ps                             # Show running containers"
+    fi
+    echo
+    echo "${YELLOW}Configuration:${RESET}"
+    echo "  Global config: config/mirror-sync.conf"
+    echo "  Local config:  config/local.conf (create from local.conf.example)"
+    echo
+    echo "${YELLOW}Mirror locations:${RESET}"
+    echo "  Debian: ${DEBIAN_TARGET:-/srv/mirrors/debian}"
+    echo "  Ubuntu: ${UBUNTU_TARGET:-/srv/mirrors/ubuntu}" 
+    echo "  Rocky:  ${ROCKY_TARGET:-/srv/mirrors/rocky}"
+    echo
+    echo "${GREEN}${BOLD}Sync processes are running in the background.${RESET}"
+    echo "${GREEN}Initial sync may take several hours depending on your configuration.${RESET}"
+    echo
+}
+
+# Function to handle cleanup on exit
+cleanup_on_exit() {
+    local exit_code=$?
+    if [[ $exit_code -ne 0 ]]; then
+        echo
+        echo "${RED}${BOLD}Setup failed!${RESET}"
+        echo "Check the logs above for error details."
+        echo "Run './scripts/debug-menu.sh' for troubleshooting help."
+    fi
+    exit $exit_code
+}
+
+# Main execution
+main() {
+    trap cleanup_on_exit EXIT
+    
+    echo "${BLUE}Starting mirror-sync quick setup...${RESET}"
+    echo "Project root: $PROJECT_ROOT"
+    echo
+    
+    # Run setup steps
+    check_requirements
+    setup_directories
+    check_disk_space
+    build_images
+    start_syncs
+    show_next_steps
+    
+    echo "${GREEN}${BOLD}🎉 Mirror sync setup completed successfully!${RESET}"
+}
+
+# Handle command line arguments
+case "${1:-start}" in
+    "start"|"")
+        main
+        ;;
+    "requirements"|"deps")
+        check_requirements
+        ;;
+    "directories"|"dirs")
+        setup_directories
+        ;;
+    "build")
+        build_images
+        ;;
+    "sync")
+        start_syncs
+        ;;
+    "help"|"-h"|"--help")
+        echo "Mirror Sync Quick Start Script"
+        echo
+        echo "Usage: $0 [command]"
+        echo
+        echo "Commands:"
+        echo "  start        Run complete setup and start syncing (default)"
+        echo "  requirements Check system requirements"
+        echo "  directories  Create necessary directories"
+        echo "  build        Build container images only"
+        echo "  sync         Start repository syncs only"
+        echo "  help         Show this help message"
+        echo
+        echo "Examples:"
+        echo "  $0           # Complete setup and start"
+        echo "  $0 build     # Just build images"
+        echo "  $0 sync      # Just start syncing"
+        ;;
+    *)
+        echo "Unknown command: $1"
+        echo "Use '$0 help' for available commands."
+        exit 1
+        ;;
+esac
