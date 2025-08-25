@@ -278,6 +278,6 @@ lock_or_exit() {
         exit 0
     fi
     
-    # Clean up lock on exit
-    trap 'rm -f "$lock_file"' EXIT
+    # Clean up lock on exit - use hard-coded path to avoid variable scope issues
+    trap "rm -f '$lock_file'" EXIT
 }
