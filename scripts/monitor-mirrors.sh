@@ -65,25 +65,59 @@ check_container_status() {
     
     log_info "Checking container status"
     
-    # Check if any mirror containers are running
-    local running_containers
-    running_containers=$("$runtime" ps --filter "name=*mirror*" --format "{{.Names}}" | wc -l)
+    if [[ -z "$runtime" ]]; then
+        log_info "No container runtime available"
+        return 0
+    fi
     
-    if [[ "$running_containers" -gt 0 ]]; then
-        log_info "$running_containers mirror containers currently running"
-        "$runtime" ps --filter "name=*mirror*" --format "table {{.Names}}\t{{.Status}}\t{{.Command}}"
+    # Get all running containers and filter for mirror-related ones
+    local all_running
+    all_running=$("$runtime" ps --format "{{.Names}}" 2>/dev/null || true)
+    
+    if [[ -n "$all_running" ]]; then
+        # Filter for containers with 'mirror' in the name (case insensitive)
+        local mirror_containers
+        mirror_containers=$(echo "$all_running" | grep -i mirror || true)
+        
+        if [[ -n "$mirror_containers" ]]; then
+            local container_count
+            container_count=$(echo "$mirror_containers" | wc -l)
+            log_info "$container_count mirror containers currently running"
+            
+            # Show detailed status for mirror containers
+            echo "$mirror_containers" | while IFS= read -r container_name; do
+                [[ -n "$container_name" ]] && log_info "  Running: $container_name"
+            done
+            
+            # Show table format if requested
+            "$runtime" ps --format "table {{.Names}}\t{{.Status}}\t{{.Image}}" 2>/dev/null | head -1
+            echo "$mirror_containers" | while IFS= read -r container_name; do
+                [[ -n "$container_name" ]] && "$runtime" ps --filter "name=$container_name" --format "{{.Names}}\t{{.Status}}\t{{.Image}}" 2>/dev/null
+            done
+        else
+            log_info "No mirror containers currently running"
+        fi
     else
-        log_info "No mirror containers currently running"
+        log_info "No containers currently running"
     fi
     
     # Check for failed containers in last 24 hours
-    local failed_containers
-    failed_containers=$("$runtime" ps -a --filter "name=*mirror*" --filter "status=exited" \
-        --format "{{.Names}}\t{{.Status}}" | grep -E "Exited \([1-9]" | wc -l)
+    local all_containers
+    all_containers=$("$runtime" ps -a --filter "status=exited" --format "{{.Names}}\t{{.Status}}" 2>/dev/null || true)
     
-    if [[ "$failed_containers" -gt 0 ]]; then
-        log_warn "$failed_containers mirror containers have failed recently"
-        return 1
+    if [[ -n "$all_containers" ]]; then
+        local failed_mirrors
+        failed_mirrors=$(echo "$all_containers" | grep -i mirror | grep -E "Exited \([1-9]" || true)
+        
+        if [[ -n "$failed_mirrors" ]]; then
+            local failed_count
+            failed_count=$(echo "$failed_mirrors" | wc -l)
+            log_warn "$failed_count mirror containers have failed recently"
+            echo "$failed_mirrors" | while IFS= read -r line; do
+                [[ -n "$line" ]] && log_warn "  Failed: $line"
+            done
+            return 1
+        fi
     fi
     
     return 0
@@ -157,7 +191,8 @@ $(uptime)
 $(free -h)
 
 === Container Status ===
-$(get_container_runtime) ps --filter "name=*mirror*" --format "table {{.Names}}\t{{.Status}}\t{{.Image}}"
+$("$(get_container_runtime)" ps --format "table {{.Names}}\t{{.Status}}\t{{.Image}}" 2>/dev/null | head -1 || true)
+$("$(get_container_runtime)" ps --format "{{.Names}}\t{{.Status}}\t{{.Image}}" 2>/dev/null | grep -i mirror || echo "No mirror containers running")
 
 === Recent Logs (Last 50 lines) ===
 $(find "$BASE_LOG_DIR" -name "*.log" -type f -exec tail -10 {} \; 2>/dev/null | tail -50)
