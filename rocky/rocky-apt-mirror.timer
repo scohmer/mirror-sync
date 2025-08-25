@@ -1,0 +1,12 @@
+[Unit]
+Description=Run Rocky Linux mirror sync daily
+Requires=rocky-apt-mirror.service
+
+[Timer]
+# Run daily at 2:00 AM
+OnCalendar=daily
+Persistent=true
+RandomizedDelaySec=1h
+
+[Install]
+WantedBy=timers.target

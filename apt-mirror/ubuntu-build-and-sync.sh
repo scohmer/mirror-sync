@@ -1,59 +1,102 @@
 #!/usr/bin/env bash
 set -euo pipefail
 
-# ---- Config (override via env) ----
-IMAGE="${IMAGE:-ubuntu-mirror:latest}"
-CTX="${CTX:-./archive.ubuntu.com}"                  # directory containing your Containerfile
-UBU_TARGET="${UBU_TARGET:-/srv/apt/ubuntu/archive.ubuntu.com/ubuntu}"  # host directory to store the mirror
+# Load configuration and common functions
+SCRIPT_DIR="$(cd "$(dirname "${BASH_SOURCE[0]}")" && pwd)"
+PROJECT_ROOT="$(dirname "$SCRIPT_DIR")"
 
-# Mirror behavior (passed into the container entrypoint)
+# shellcheck source=../lib/common.sh
+source "$PROJECT_ROOT/lib/common.sh"
+load_config
+
+# ---- Ubuntu Specific Config ----
+IMAGE="${UBUNTU_IMAGE:-ubuntu-mirror:latest}"
+CTX="${CTX:-./archive.ubuntu.com}"
+UBU_TARGET="${UBUNTU_TARGET:-/srv/mirrors/ubuntu}"
+
+# Mirror behavior (passed into container)
 UBUNTU_VERSIONS="${UBUNTU_VERSIONS:-20.04 22.04 24.04 25.04}"
-ARCHS="${ARCHS:-amd64,i386}"
-THREADS="${THREADS:-20}"
-INCLUDE_SOURCES="${INCLUDE_SOURCES:-true}"
-INCLUDE_UPDATES="${INCLUDE_UPDATES:-true}"
-INCLUDE_BACKPORTS="${INCLUDE_BACKPORTS:-true}"
-METADATA_ONLY="${METADATA_ONLY:-false}"
+ARCHS="${UBUNTU_ARCHS:-amd64,i386}"
+THREADS="${DEFAULT_THREADS:-20}"
+INCLUDE_SOURCES="${UBUNTU_INCLUDE_SOURCES:-true}"
+INCLUDE_UPDATES="${UBUNTU_INCLUDE_UPDATES:-true}"
+INCLUDE_BACKPORTS="${UBUNTU_INCLUDE_BACKPORTS:-true}"
+METADATA_ONLY="${UBUNTU_METADATA_ONLY:-false}"
 
-# Optional: override upstream mirrors used by the script
+# Upstream mirrors
 UBUNTU_MIRROR="${UBUNTU_MIRROR:-http://archive.ubuntu.com/ubuntu}"
 UBUNTU_SECURITY_MIRROR="${UBUNTU_SECURITY_MIRROR:-http://security.ubuntu.com/ubuntu}"
 
 # Logging
-LOG_DIR="${LOG_DIR:-/opt/mirror-sync/apt-mirror/ubuntu-log}"
-mkdir -p "$LOG_DIR"
+LOG_DIR="${BASE_LOG_DIR:-/opt/mirror-sync/logs}/ubuntu"
+BUILD_LOG="$LOG_DIR/build.log"
+RUN_LOG="$LOG_DIR/run.log"
+LOCK_FILE="/var/lock/ubuntu-mirror-sync.lock"
 
-echo "[*] Building image from $CTX..."
-podman build -t "$IMAGE" "$CTX" >"$LOG_DIR/build.log" 2>&1
-echo "[✓] Built $IMAGE (log: $LOG_DIR/build.log)"
+# ========== Main Execution ==========
+main() {
+    log_info "Starting Ubuntu mirror sync"
+    
+    # Acquire lock to prevent concurrent runs
+    lock_or_exit "$LOCK_FILE" "ubuntu-mirror-sync"
+    
+    # Wait for network
+    wait_for_network
+    
+    # Setup logging
+    setup_logging "$LOG_DIR" "ubuntu"
+    
+    # Check disk space before starting
+    check_disk_space "$UBU_TARGET"
+    
+    # Build container image
+    if ! build_container_image "$IMAGE" "$CTX" "$BUILD_LOG"; then
+        send_notification "Ubuntu Build Failed" "Container image build failed. See $BUILD_LOG"
+        exit 1
+    fi
+    
+    # Prepare target directory
+    prepare_target_directory "$UBU_TARGET"
+    
+    log_info "Running Ubuntu mirror sync..."
+    log_debug "Versions: $UBUNTU_VERSIONS | Archs: $ARCHS | Threads: $THREADS"
+    
+    # Run the sync container
+    if ! run_container "$IMAGE" "ubuntu-apt-mirror" "$RUN_LOG" \
+        -e "UBUNTU_VERSIONS=$UBUNTU_VERSIONS" \
+        -e "ARCHS=$ARCHS" \
+        -e "THREADS=$THREADS" \
+        -e "INCLUDE_SOURCES=$INCLUDE_SOURCES" \
+        -e "INCLUDE_UPDATES=$INCLUDE_UPDATES" \
+        -e "INCLUDE_BACKPORTS=$INCLUDE_BACKPORTS" \
+        -e "METADATA_ONLY=$METADATA_ONLY" \
+        -e "UBUNTU_MIRROR=$UBUNTU_MIRROR" \
+        -e "UBUNTU_SECURITY_MIRROR=$UBUNTU_SECURITY_MIRROR" \
+        -e "MIRROR_ROOT=$UBU_TARGET" \
+        -v "$UBU_TARGET:$UBU_TARGET:Z" \
+        --entrypoint /usr/local/bin/sync-ubuntu-mirror.sh; then
+        
+        send_notification "Ubuntu Sync Failed" "Mirror synchronization failed. See $RUN_LOG"
+        exit 1
+    fi
+    
+    # Run health checks
+    run_health_checks "$UBU_TARGET" "ubuntu"
+    
+    # Cleanup old images if enabled
+    if [[ "${AUTO_CLEANUP_OLD_IMAGES:-true}" == "true" ]]; then
+        cleanup_old_images "$IMAGE"
+    fi
+    
+    # Cleanup old logs
+    cleanup_old_logs "$LOG_DIR"
+    
+    log_info "Ubuntu mirror sync completed successfully"
+    log_info "Mirror available at: $UBU_TARGET"
+    log_info "Logs: Build($BUILD_LOG) Run($RUN_LOG)"
+    
+    send_notification "Ubuntu Sync Complete" "Mirror synchronized successfully to $UBU_TARGET"
+}
 
-echo "[*] Preparing target at $UBU_TARGET..."
-sudo mkdir -p "$UBU_TARGET"
-sudo chown root:root "$UBU_TARGET"
-
-# If your host uses SELinux, keep :Z on the volume (or chcon once instead).
-# sudo chcon -Rt container_file_t "$UBU_TARGET" || true
-
-echo "[*] Running Ubuntu mirror sync via apt-mirror..."
-# The image must contain /usr/local/bin/sync-ubuntu-mirror.sh as entrypoint script.
-if ! podman run --rm --name ubuntu-apt-mirror \
-  -e UBUNTU_VERSIONS="$UBUNTU_VERSIONS" \
-  -e ARCHS="$ARCHS" \
-  -e THREADS="$THREADS" \
-  -e INCLUDE_SOURCES="$INCLUDE_SOURCES" \
-  -e INCLUDE_UPDATES="$INCLUDE_UPDATES" \
-  -e INCLUDE_BACKPORTS="$INCLUDE_BACKPORTS" \
-  -e METADATA_ONLY="$METADATA_ONLY" \
-  -e UBUNTU_MIRROR="$UBUNTU_MIRROR" \
-  -e UBUNTU_SECURITY_MIRROR="$UBUNTU_SECURITY_MIRROR" \
-  -e MIRROR_ROOT="$UBU_TARGET" \
-  -v "$UBU_TARGET:$UBU_TARGET:Z" \
-  --entrypoint /usr/local/bin/sync-ubuntu-mirror.sh \
-  "$IMAGE" >"$LOG_DIR/run.log" 2>&1
-then
-  echo "[x] Sync failed. See $LOG_DIR/run.log"
-  exit 1
-fi
-
-echo "[✓] Sync complete at: $UBU_TARGET"
-echo "Log: $LOG_DIR/run.log"
+# Run main function
+main "$@"
