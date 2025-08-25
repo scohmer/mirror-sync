@@ -2,7 +2,7 @@
 FROM rockylinux:9
 
 # Install Rocky-specific tools
-RUN dnf -y install dnf-plugins-core createrepo_c wget curl rsync && dnf clean all
+RUN dnf -y install --allowerasing dnf-plugins-core createrepo_c wget curl rsync && dnf clean all
 
 # Create mirror directory and set up user
 RUN mkdir -p /srv/mirrors/rocky
