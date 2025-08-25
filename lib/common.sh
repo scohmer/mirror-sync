@@ -146,16 +146,22 @@ check_disk_space() {
     local path="$1"
     local threshold="${DISK_USAGE_THRESHOLD:-85}"
     
+    # If path doesn't exist, check parent directory
+    local check_path="$path"
+    while [[ ! -d "$check_path" && "$check_path" != "/" ]]; do
+        check_path="$(dirname "$check_path")"
+    done
+    
     local usage
-    usage=$(df "$path" | awk 'NR==2 {print $5}' | sed 's/%//')
+    usage=$(df "$check_path" | awk 'NR==2 {print $5}' | sed 's/%//')
     
     if [[ "$usage" -gt "$threshold" ]]; then
-        log_warn "Disk usage at $path is ${usage}% (threshold: ${threshold}%)"
-        send_notification "High disk usage" "Disk usage at $path is ${usage}%"
+        log_warn "Disk usage at $check_path is ${usage}% (threshold: ${threshold}%)"
+        send_notification "High disk usage" "Disk usage at $check_path is ${usage}%"
         return 1
     fi
     
-    log_debug "Disk usage at $path: ${usage}%"
+    log_debug "Disk usage at $check_path: ${usage}%"
     return 0
 }
 
