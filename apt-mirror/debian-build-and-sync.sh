@@ -16,7 +16,7 @@ load_config
 
 # ---- Debian Specific Config ----
 IMAGE="${DEBIAN_IMAGE:-debian-mirror:latest}"
-CTX="${CTX:-./deb.debian.org}"
+CTX="${CTX:-./apt-mirror/deb.debian.org}"
 DEB_TARGET="${DEBIAN_TARGET:-/srv/mirrors/debian}"
 
 # Mirror behavior (passed into container)

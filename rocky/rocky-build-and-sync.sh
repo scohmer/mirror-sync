@@ -16,7 +16,7 @@ load_config
 
 # ---- Rocky Linux Specific Config ----
 IMAGE="${ROCKY_IMAGE:-rocky-mirror:latest}"
-CTX="${CTX:-./dl.rockylinux.org}"
+CTX="${CTX:-./rocky/dl.rockylinux.org}"
 ROCKY_TARGET="${ROCKY_TARGET:-/srv/mirrors/rocky}"
 
 # Mirror behavior (passed into container)

@@ -16,7 +16,7 @@ load_config
 
 # ---- Ubuntu Specific Config ----
 IMAGE="${UBUNTU_IMAGE:-ubuntu-mirror:latest}"
-CTX="${CTX:-./archive.ubuntu.com}"
+CTX="${CTX:-./apt-mirror/archive.ubuntu.com}"
 UBU_TARGET="${UBUNTU_TARGET:-/srv/mirrors/ubuntu}"
 
 # Mirror behavior (passed into container)
