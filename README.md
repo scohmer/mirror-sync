@@ -198,18 +198,38 @@ Existing configurations will continue to work, but new features require the opti
 
 ## Troubleshooting
 
+### Debug Script
+
+If the mirror sync scripts aren't working, start with the debug script:
+
+```bash
+./debug-framework.sh
+```
+
+This script checks:
+- File existence (libraries, configs, scripts)
+- Configuration loading functionality
+- Container runtime availability (podman/docker)
+- Directory permissions for target paths
+- Library function loading
+
+The debug output will help identify configuration, permission, or dependency issues.
+
 ### Common Issues
 
 1. **Permission Denied**: Ensure scripts are executable and SELinux contexts are correct
 2. **Disk Space**: Monitor disk usage; sync operations require significant space
 3. **Network Issues**: Check connectivity and firewall settings for repository access
 4. **Container Build Failures**: Check container runtime installation and permissions
+5. **Script Does Nothing**: Run `./debug-framework.sh` to identify missing dependencies or configuration issues
+6. **Lock File Issues**: Check `/var/lock/` permissions or remove stale lock files
 
 ### Log Locations
 
 - Service logs: `journalctl -u <service-name>`
 - Container build logs: `$BASE_LOG_DIR/{distribution}/build.log`
 - Sync operation logs: `$BASE_LOG_DIR/{distribution}/run.log`
+- Debug output: Run `./debug-framework.sh` for comprehensive system check
 
 ### Getting Help
 
@@ -218,3 +238,5 @@ Check the monitoring report for system status:
 ./scripts/monitor-mirrors.sh report
 cat $BASE_LOG_DIR/mirror-status-report.txt
 ```
+
+For framework issues, run the debug script and include its output when reporting problems.
