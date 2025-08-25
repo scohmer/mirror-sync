@@ -1,8 +1,24 @@
+# rocky-mirror.Containerfile
 FROM rockylinux:9
 
-RUN dnf -y install dnf-plugins-core createrepo_c wget && dnf clean all
+# Install Rocky-specific tools
+RUN dnf -y install dnf-plugins-core createrepo_c wget curl rsync && dnf clean all
 
+# Create mirror directory and set up user
+RUN mkdir -p /srv/mirrors/rocky
+RUN groupadd -r mirror && useradd -r -g mirror -d /opt/mirror-sync -s /bin/bash mirror
+
+# Copy sync script
 COPY sync-rocky-all.sh /usr/local/bin/sync-rocky-all.sh
 RUN chmod +x /usr/local/bin/sync-rocky-all.sh
 
+# Health check
+COPY healthcheck-rocky.sh /usr/local/bin/healthcheck-rocky.sh
+RUN chmod +x /usr/local/bin/healthcheck-rocky.sh
+
+HEALTHCHECK --interval=30m --timeout=10s --start-period=5m --retries=3 \
+    CMD ["/usr/local/bin/healthcheck-rocky.sh"]
+
+VOLUME ["/srv/mirrors/rocky"]
+WORKDIR /opt/mirror-sync
 ENTRYPOINT ["/usr/local/bin/sync-rocky-all.sh"]
