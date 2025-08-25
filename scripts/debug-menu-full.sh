@@ -187,7 +187,7 @@ run_container_test() {
         fi
         
         echo "Current images:"
-        podman images | head -5
+        podman images | head -5 || true
         
     elif command -v docker >/dev/null 2>&1; then
         echo -e "${GREEN}✓${NC} docker available: $(docker --version)"
@@ -201,6 +201,7 @@ run_container_test() {
     else
         echo -e "${RED}✗${NC} No container runtime (podman/docker) found"
     fi
+    return 0
 }
 
 run_network_test() {
@@ -506,6 +507,7 @@ run_health_check() {
     echo
     
     echo -e "${GREEN}Health check completed${NC}"
+    return 0
 }
 
 # Main menu loop
