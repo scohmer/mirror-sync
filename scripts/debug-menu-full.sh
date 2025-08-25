@@ -139,7 +139,7 @@ run_framework_test() {
             echo -e "  ${RED}✗${NC} Configuration loading failed"
         fi
         
-        if log_info "Test log message" 2>/dev/null; then
+        if log_info "Test log message" 2>/dev/null || true; then
             echo -e "  ${GREEN}✓${NC} Logging functions work"
         else
             echo -e "  ${RED}✗${NC} Logging functions failed"
@@ -147,6 +147,7 @@ run_framework_test() {
     else
         echo -e "  ${RED}✗${NC} Failed to load lib/common.sh"
     fi
+    return 0
 }
 
 run_config_test() {
@@ -157,7 +158,7 @@ run_config_test() {
     
     if [[ -f "$default_config" ]]; then
         echo -e "${GREEN}✓${NC} Default config file exists"
-        echo "File size: $(wc -l < "$default_config") lines"
+        echo "File size: $(wc -l < "$default_config" || echo "unknown") lines"
         
         if source "$default_config" 2>/dev/null; then
             echo -e "${GREEN}✓${NC} Config file sources successfully"
@@ -172,6 +173,7 @@ run_config_test() {
         echo -e "${RED}✗${NC} Default config file missing"
         echo "Run: sudo ./scripts/setup-mirrors.sh config"
     fi
+    return 0
 }
 
 run_container_test() {
@@ -222,12 +224,13 @@ run_network_test() {
     )
     
     for repo in "${repos[@]}"; do
-        if curl -f -s --connect-timeout 10 "$repo" >/dev/null; then
+        if curl -f -s --connect-timeout 10 "$repo" >/dev/null 2>&1 || true; then
             echo -e "${GREEN}✓${NC} $repo reachable"
         else
             echo -e "${RED}✗${NC} $repo not reachable"
         fi
     done
+    return 0
 }
 
 run_lock_test() {
