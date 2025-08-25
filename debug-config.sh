@@ -13,8 +13,14 @@ echo "SCRIPT_DIR detection test:"
 SCRIPT_DIR="$(cd "$(dirname "${BASH_SOURCE[0]}")" && pwd)"
 echo "SCRIPT_DIR: $SCRIPT_DIR"
 
-PROJECT_ROOT="$(dirname "$SCRIPT_DIR")"
-echo "PROJECT_ROOT (calculated): $PROJECT_ROOT"
+# Fix: If we're in the root of mirror-sync, PROJECT_ROOT should be SCRIPT_DIR, not its parent
+if [[ -f "$SCRIPT_DIR/config/mirror-sync.conf" ]]; then
+    PROJECT_ROOT="$SCRIPT_DIR"
+    echo "PROJECT_ROOT (corrected): $PROJECT_ROOT"
+else
+    PROJECT_ROOT="$(dirname "$SCRIPT_DIR")"
+    echo "PROJECT_ROOT (calculated): $PROJECT_ROOT"
+fi
 
 if [[ -d "$PROJECT_ROOT/config" ]]; then
     echo "✓ config directory found at: $PROJECT_ROOT/config"

@@ -7,6 +7,11 @@ set -euo pipefail
 SCRIPT_DIR="$(cd "$(dirname "${BASH_SOURCE[0]}")" && pwd)"
 PROJECT_ROOT="$(dirname "$SCRIPT_DIR")"
 
+# Fix for when running from project root - check if config exists in current dir
+if [[ ! -f "$PROJECT_ROOT/config/mirror-sync.conf" && -f "$(pwd)/config/mirror-sync.conf" ]]; then
+    PROJECT_ROOT="$(pwd)"
+fi
+
 # shellcheck source=../lib/common.sh
 source "$PROJECT_ROOT/lib/common.sh"
 load_config
