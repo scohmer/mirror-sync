@@ -4,7 +4,7 @@ set -euo pipefail
 # ===== Config (override with env vars) =====
 : "${MIRROR_ROOT:=/rocky-mirror}"                 # where to store the mirror (mount a volume here)
 : "${VERSIONS:=8 9 10}"                     # space-separated list
-: "${ARCHES:=x86_64}"                       # e.g. "x86_64 aarch64"
+: "${ARCHES:=x86_64}"                       # e.g. "x86_64 aarch64" (noarch is automatically included)
 # User-requested repos; case-insensitive; CRB/PowerTools handled per-version below
 : "${REPOS:=AppStream BaseOS Devel Extras Plus PowerTools}"
 : "${UPSTREAM_BASE:=https://dl.rockylinux.org/pub/rocky}"  # official origin
@@ -84,8 +84,10 @@ run_sync() {
   [[ "$NEWEST_ONLY" == "true" ]] && newest_flag+=(--newest-only)
 
   # --norepopath puts content directly into $dest instead of $dest/<repoid>/
+  # Include both the specified arch and noarch packages
   dnf -y reposync \
     --arch "$arch" \
+    --arch noarch \
     --download-metadata \
     --download-path "$dest" \
     --norepopath \
