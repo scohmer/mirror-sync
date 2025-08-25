@@ -3,6 +3,11 @@
 
 set -euo pipefail
 
+# Initialize common variables to prevent unbound variable errors
+export PROJECT_ROOT="${PROJECT_ROOT:-}"
+export BASE_LOG_DIR="${BASE_LOG_DIR:-}"
+export LOCK_FILE="${LOCK_FILE:-}"
+
 # ========== Configuration Loading ==========
 load_config() {
     local config_file="${1:-}"
