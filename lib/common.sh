@@ -17,6 +17,9 @@ load_config() {
     # Load local overrides if they exist
     local local_config="${PROJECT_ROOT:-/opt/mirror-sync}/config/local.conf"
     [[ -f "$local_config" ]] && source "$local_config"
+    
+    # Always return success
+    return 0
 }
 
 # ========== Logging Functions ==========
