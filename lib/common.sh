@@ -46,6 +46,7 @@ log_error() {
 
 log_debug() {
     [[ "${DEBUG:-}" == "true" ]] && log "[DEBUG] $*"
+    return 0
 }
 
 # ========== Container Management ==========
@@ -161,7 +162,7 @@ check_disk_space() {
         return 1
     fi
     
-    # log_debug "Disk usage at $check_path: ${usage}%"  # Temporarily commented out
+    log_debug "Disk usage at $check_path: ${usage}%"
     return 0
 }
 
