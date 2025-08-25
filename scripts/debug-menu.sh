@@ -192,12 +192,16 @@ main() {
         case $choice in
             1) run_framework_test ;;
             2) run_config_test ;;
-            3) echo "Container runtime: $(command -v podman || command -v docker || echo 'Not found')" ;;
+            3) 
+                echo "Container runtime: $(command -v podman || command -v docker || echo 'Not found')" 
+                ;;
             4) ping -c 1 8.8.8.8 && echo "Network OK" || echo "Network failed" ;;
             5) echo "Lock test - not implemented in simple version" ;;
             6) echo "Disk test - not implemented in simple version" ;;
             7) echo "Logging test - not implemented in simple version" ;;
-            8) echo "Container build test - not implemented in simple version" ;;
+            8) 
+                echo "Container build test - not implemented in simple version" 
+                ;;
             9) echo "Debian integration test - not implemented in simple version" ;;
             10) echo "Ubuntu integration test - not implemented in simple version" ;;
             11) echo "Rocky integration test - not implemented in simple version" ;;
@@ -228,7 +232,9 @@ main() {
                 rm -f /var/lock/*mirror*.lock
                 echo "Done"
                 ;;
-            17) run_quick_health_check ;;
+            17) 
+                run_quick_health_check 
+                ;;
             0) 
                 echo "Exiting debug menu..."
                 exit 0
