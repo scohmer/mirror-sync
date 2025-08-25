@@ -154,18 +154,15 @@ run_config_test() {
     echo -e "${BLUE}=== Configuration Loading Test ===${NC}"
     
     local default_config="${PROJECT_ROOT:-/opt/mirror-sync}/config/mirror-sync.conf"
-    echo "Default config path: $default_config"
+    local local_config="${PROJECT_ROOT:-/opt/mirror-sync}/config/local.conf"
     
+    echo "Default config path: $default_config"
     if [[ -f "$default_config" ]]; then
         echo -e "${GREEN}✓${NC} Default config file exists"
         echo "File size: $(wc -l < "$default_config" || echo "unknown") lines"
         
         if source "$default_config" 2>/dev/null; then
             echo -e "${GREEN}✓${NC} Config file sources successfully"
-            echo "Sample variables:"
-            echo "  DEBIAN_TARGET: ${DEBIAN_TARGET:-NOT_SET}"
-            echo "  UBUNTU_TARGET: ${UBUNTU_TARGET:-NOT_SET}"
-            echo "  ROCKY_TARGET: ${ROCKY_TARGET:-NOT_SET}"
         else
             echo -e "${RED}✗${NC} Config file has syntax errors"
         fi
@@ -173,6 +170,30 @@ run_config_test() {
         echo -e "${RED}✗${NC} Default config file missing"
         echo "Run: sudo ./scripts/setup-mirrors.sh config"
     fi
+    
+    echo
+    echo "Local config path: $local_config"
+    if [[ -f "$local_config" ]]; then
+        echo -e "${GREEN}✓${NC} Local config file exists (will override defaults)"
+        echo "File size: $(wc -l < "$local_config" || echo "unknown") lines"
+        
+        if source "$local_config" 2>/dev/null; then
+            echo -e "${GREEN}✓${NC} Local config file sources successfully"
+        else
+            echo -e "${RED}✗${NC} Local config file has syntax errors"
+        fi
+    else
+        echo -e "${YELLOW}-${NC} No local config file (using defaults)"
+        echo "Create one: cp config/local.conf.example config/local.conf"
+    fi
+    
+    echo
+    echo "Final configuration values after loading:"
+    echo "  DEBIAN_TARGET: ${DEBIAN_TARGET:-NOT_SET}"
+    echo "  UBUNTU_TARGET: ${UBUNTU_TARGET:-NOT_SET}" 
+    echo "  ROCKY_TARGET: ${ROCKY_TARGET:-NOT_SET}"
+    echo "  DEFAULT_THREADS: ${DEFAULT_THREADS:-NOT_SET}"
+    
     return 0
 }
 

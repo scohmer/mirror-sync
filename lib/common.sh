@@ -12,16 +12,29 @@ export LOCK_FILE="${LOCK_FILE:-}"
 load_config() {
     local config_file="${1:-}"
     local default_config="${PROJECT_ROOT:-/opt/mirror-sync}/config/mirror-sync.conf"
+    local local_config="${PROJECT_ROOT:-/opt/mirror-sync}/config/local.conf"
     
     # Load default config if it exists
-    [[ -f "$default_config" ]] && source "$default_config"
+    if [[ -f "$default_config" ]]; then
+        source "$default_config"
+        log_debug "Loaded default config: $default_config"
+    else
+        log_debug "Default config not found: $default_config"
+    fi
     
     # Load custom config if provided
-    [[ -n "$config_file" && -f "$config_file" ]] && source "$config_file"
+    if [[ -n "$config_file" && -f "$config_file" ]]; then
+        source "$config_file"
+        log_debug "Loaded custom config: $config_file"
+    fi
     
-    # Load local overrides if they exist
-    local local_config="${PROJECT_ROOT:-/opt/mirror-sync}/config/local.conf"
-    [[ -f "$local_config" ]] && source "$local_config"
+    # Load local overrides if they exist (highest priority)
+    if [[ -f "$local_config" ]]; then
+        source "$local_config"
+        log_debug "Loaded local config overrides: $local_config"
+    else
+        log_debug "No local config found: $local_config"
+    fi
     
     # Always return success
     return 0

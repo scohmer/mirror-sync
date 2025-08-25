@@ -1,0 +1,178 @@
+# Mirror Sync Local Configuration Example
+# Copy this file to local.conf and customize your settings
+# All settings in local.conf will override the global mirror-sync.conf defaults
+#
+# Usage:
+#   cp config/local.conf.example config/local.conf
+#   # Edit config/local.conf with your custom settings
+#   # Run your sync scripts - they will automatically use local.conf overrides
+
+# ========== Global Settings ==========
+# Uncomment and modify these settings to override global defaults
+
+# Base directories - customize for your environment
+#PROJECT_ROOT="/opt/mirror-sync"
+#BASE_LOG_DIR="/var/log/mirror-sync"
+#BASE_MIRROR_DIR="/srv/mirrors"
+
+# Container runtime preference (podman or docker)
+#CONTAINER_RUNTIME="podman"
+
+# Global resource limits - adjust based on your hardware
+#DEFAULT_MEMORY_LIMIT="8g"         # Container memory limit
+#DEFAULT_CPU_LIMIT="4.0"           # CPU cores limit
+#DEFAULT_TIMEOUT="24h"             # Maximum sync time
+
+# Network and performance tuning
+#DEFAULT_THREADS="40"              # Download threads (higher = faster but more bandwidth)
+#NICE_LEVEL="10"                   # Process priority (0=highest, 19=lowest)
+#IO_SCHEDULING_CLASS="best-effort" # IO scheduling class
+#IO_SCHEDULING_PRIORITY="7"        # IO scheduling priority (0=highest, 7=lowest)
+
+# ========== Debian Configuration ==========
+# Customize Debian mirror settings
+
+# Container and target settings
+#DEBIAN_IMAGE="debian-mirror:latest"
+#DEBIAN_TARGET="/srv/mirrors/debian"
+
+# Debian suites to mirror - add/remove as needed
+# Available: oldoldstable, oldstable, stable, testing, unstable
+# Or specific codenames: bullseye, bookworm, trixie, forky
+#DEBIAN_SUITES="bookworm trixie"
+
+# Architectures to mirror
+# Available: amd64, i386, arm64, armel, armhf, mips64el, ppc64el, s390x
+#DEBIAN_ARCHS="amd64,i386"
+
+# What to include in the mirror
+#DEBIAN_INCLUDE_UPDATES="true"     # Include -updates pocket (security fixes)
+#DEBIAN_INCLUDE_BACKPORTS="true"   # Include -backports pocket (newer packages)
+#DEBIAN_INCLUDE_SOURCES="true"     # Include source packages (.dsc, .tar.xz files)
+
+# Mirror mode
+#DEBIAN_METADATA_ONLY="false"      # true = only metadata (for bandwidth-limited setups)
+
+# ========== Ubuntu Configuration ==========
+# Customize Ubuntu mirror settings
+
+# Container and target settings
+#UBUNTU_IMAGE="ubuntu-mirror:latest"
+#UBUNTU_TARGET="/srv/mirrors/ubuntu"
+
+# Ubuntu versions to mirror - adjust based on support lifecycle
+# LTS versions: 20.04 (until 2025), 22.04 (until 2027), 24.04 (until 2029)
+# Regular versions: 23.10 (until Jul 2024), 24.10 (until Jul 2025), 25.04 (until Jan 2026)
+#UBUNTU_VERSIONS="22.04 24.04"
+
+# Architectures to mirror
+# Available: amd64, i386, arm64, armhf, ppc64el, s390x
+#UBUNTU_ARCHS="amd64,i386"
+
+# What to include in the mirror
+#UBUNTU_INCLUDE_UPDATES="true"     # Include -updates pocket (bug fixes)
+#UBUNTU_INCLUDE_BACKPORTS="true"   # Include -backports pocket (newer packages)
+#UBUNTU_INCLUDE_SOURCES="true"     # Include source packages
+
+# Mirror mode
+#UBUNTU_METADATA_ONLY="false"      # true = only metadata
+
+# Upstream mirror URLs - change for regional mirrors or local caching
+#UBUNTU_MIRROR="http://archive.ubuntu.com/ubuntu"
+#UBUNTU_SECURITY_MIRROR="http://security.ubuntu.com/ubuntu"
+# Regional alternatives:
+# US: http://us.archive.ubuntu.com/ubuntu
+# Europe: http://eu.archive.ubuntu.com/ubuntu
+# Asia: http://asia.archive.ubuntu.com/ubuntu
+
+# ========== Rocky Linux Configuration ==========
+# Customize Rocky Linux mirror settings
+
+# Container and target settings
+#ROCKY_IMAGE="rocky-mirror:latest"
+#ROCKY_TARGET="/srv/mirrors/rocky"
+
+# Rocky Linux versions to mirror
+# Available: 8 (until 2029), 9 (until 2032), 10 (development)
+#ROCKY_VERSIONS="8 9"
+
+# Architectures to mirror
+# Available: x86_64, aarch64 (noarch packages are automatically included)
+#ROCKY_ARCHES="x86_64"
+
+# Repositories to mirror - customize based on your needs
+# Available repos:
+# - AppStream: Main application packages
+# - BaseOS: Core operating system packages  
+# - Devel: Development tools and headers
+# - Extras: Additional community packages
+# - Plus: Enhanced packages with additional features
+# - PowerTools/CRB: Code Ready Builder (dev tools, differs between versions)
+#ROCKY_REPOS="AppStream BaseOS Devel"
+
+# Upstream mirror URL - change for regional mirrors
+#ROCKY_UPSTREAM_BASE="https://dl.rockylinux.org/pub/rocky"
+# Regional alternatives:
+# Europe: https://eu.rockylinux.org/pub/rocky
+# Asia: https://asia.rockylinux.org/pub/rocky
+
+# Package management options
+#ROCKY_KEEP_OLD="false"            # true = keep old package versions (uses more space)
+#ROCKY_NEWEST_ONLY="true"          # true = only keep newest package versions
+
+# ========== Monitoring & Alerting ==========
+# Configure monitoring and notification settings
+
+# Disk usage monitoring
+#DISK_USAGE_THRESHOLD="90"         # Alert when disk usage exceeds this percentage
+
+# Notification settings
+#ENABLE_NOTIFICATIONS="true"       # Enable email/slack notifications
+#NOTIFICATION_EMAIL="admin@example.com"
+#SLACK_WEBHOOK_URL="https://hooks.slack.com/services/YOUR/WEBHOOK/URL"
+
+# ========== Cleanup Settings ==========
+# Configure automatic cleanup behavior
+
+# Container image cleanup
+#AUTO_CLEANUP_OLD_IMAGES="true"    # Automatically remove old container images
+#KEEP_IMAGE_VERSIONS="2"           # Number of old image versions to keep
+
+# Log file retention
+#LOG_RETENTION_DAYS="14"           # Delete logs older than this many days
+
+# ========== Example Production Configurations ==========
+
+# Example 1: High-performance server with lots of storage
+# Uncomment these for a powerful server setup:
+#DEFAULT_MEMORY_LIMIT="16g"
+#DEFAULT_CPU_LIMIT="8.0" 
+#DEFAULT_THREADS="60"
+#DEBIAN_SUITES="bullseye bookworm trixie"
+#UBUNTU_VERSIONS="20.04 22.04 24.04"
+#ROCKY_VERSIONS="8 9"
+
+# Example 2: Bandwidth-limited environment
+# Uncomment these for limited bandwidth:
+#DEFAULT_THREADS="10"
+#DEBIAN_METADATA_ONLY="true"
+#UBUNTU_METADATA_ONLY="true"
+#DEBIAN_INCLUDE_SOURCES="false"
+#UBUNTU_INCLUDE_SOURCES="false"
+
+# Example 3: Development environment (minimal mirrors)
+# Uncomment these for development use:
+#DEBIAN_SUITES="bookworm"
+#UBUNTU_VERSIONS="24.04"
+#ROCKY_VERSIONS="9"
+#DEBIAN_INCLUDE_BACKPORTS="false"
+#UBUNTU_INCLUDE_BACKPORTS="false"
+
+# Example 4: Air-gapped environment (full offline capability)
+# Uncomment these for complete offline mirrors:
+#DEBIAN_INCLUDE_SOURCES="true"
+#UBUNTU_INCLUDE_SOURCES="true"
+#DEBIAN_INCLUDE_UPDATES="true"
+#UBUNTU_INCLUDE_UPDATES="true"
+#ROCKY_KEEP_OLD="true"
+#ROCKY_NEWEST_ONLY="false"
