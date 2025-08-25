@@ -198,22 +198,58 @@ Existing configurations will continue to work, but new features require the opti
 
 ## Troubleshooting
 
-### Debug Script
+### Debug Menu System
 
-If the mirror sync scripts aren't working, start with the debug script:
+The project includes a comprehensive debug menu system for troubleshooting:
 
 ```bash
-./debug-framework.sh
+./scripts/debug-menu.sh
 ```
 
-This script checks:
-- File existence (libraries, configs, scripts)
-- Configuration loading functionality
-- Container runtime availability (podman/docker)
-- Directory permissions for target paths
-- Library function loading
+The interactive menu provides:
 
-The debug output will help identify configuration, permission, or dependency issues.
+**Framework Tests:**
+- Basic framework validation (files, config, library loading)
+- Configuration system testing
+- Container runtime verification  
+- Network connectivity checks
+
+**Function Tests:**
+- Lock mechanism validation
+- Disk space checking
+- Logging system verification
+- Container image build testing
+
+**Integration Tests:**  
+- Step-by-step testing for each distribution (Debian, Ubuntu, Rocky)
+- Full workflow validation
+- Context and dependency verification
+
+**System Information:**
+- System status reports
+- Container status and image listings
+- Mirror directory analysis
+- Log file examination
+
+**Utilities:**
+- Test lock cleanup
+- Comprehensive health checks
+- System diagnostics
+
+### Quick Debug Commands
+
+For specific issues, you can also run individual components:
+
+```bash
+# Quick framework check
+source lib/common.sh && load_config && echo "Framework OK"
+
+# Test specific distribution
+./scripts/debug-menu.sh  # Then choose option 9, 10, or 11
+
+# Check logs
+tail -f /opt/mirror-sync/logs/{debian,ubuntu,rocky}/*.log
+```
 
 ### Common Issues
 
@@ -221,22 +257,30 @@ The debug output will help identify configuration, permission, or dependency iss
 2. **Disk Space**: Monitor disk usage; sync operations require significant space
 3. **Network Issues**: Check connectivity and firewall settings for repository access
 4. **Container Build Failures**: Check container runtime installation and permissions
-5. **Script Does Nothing**: Run `./debug-framework.sh` to identify missing dependencies or configuration issues
-6. **Lock File Issues**: Check `/var/lock/` permissions or remove stale lock files
+5. **Script Hangs or Does Nothing**: Use `./scripts/debug-menu.sh` for comprehensive diagnostics
+6. **Lock File Issues**: Use debug menu option 16 to clean up test locks
+7. **Configuration Problems**: Use debug menu options 1-2 for config validation
 
 ### Log Locations
 
 - Service logs: `journalctl -u <service-name>`
 - Container build logs: `$BASE_LOG_DIR/{distribution}/build.log`
 - Sync operation logs: `$BASE_LOG_DIR/{distribution}/run.log`
-- Debug output: Run `./debug-framework.sh` for comprehensive system check
+- Debug analysis: Use debug menu option 15 for log file examination
 
 ### Getting Help
 
-Check the monitoring report for system status:
+For comprehensive system diagnostics:
 ```bash
+# Interactive debug menu
+./scripts/debug-menu.sh
+
+# Full health check (option 17 in menu)
+# System status report (option 12 in menu) 
+
+# Monitoring report
 ./scripts/monitor-mirrors.sh report
 cat $BASE_LOG_DIR/mirror-status-report.txt
 ```
 
-For framework issues, run the debug script and include its output when reporting problems.
+When reporting issues, include the output from the debug menu's health check (option 17).
