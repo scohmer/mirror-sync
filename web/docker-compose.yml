@@ -35,10 +35,7 @@ services:
       context: ./nginx
       dockerfile: Containerfile
     container_name: mirror-sync-nginx
-    ports:
-      - "3000:8080"
-    networks:
-      - mirror-web
+    network_mode: "host"
     restart: unless-stopped
     depends_on:
       - web-backend
