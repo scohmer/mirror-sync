@@ -305,10 +305,86 @@ main() {
     echo "${GREEN}${BOLD}🎉 Mirror sync setup completed successfully!${RESET}"
 }
 
+# Function to start web interface
+start_web_interface() {
+    echo "${YELLOW}${BOLD}=== Starting Web Interface ===${RESET}"
+    
+    if [[ ! -d "web" ]]; then
+        echo "  ${RED}✗${RESET} Web interface not found. Run setup first."
+        exit 1
+    fi
+    
+    echo "  ${BLUE}Starting web services...${RESET}"
+    cd web
+    
+    # Check if Docker Compose v2 is available
+    local compose_cmd="docker-compose"
+    if command -v docker >/dev/null 2>&1 && docker compose version >/dev/null 2>&1; then
+        compose_cmd="docker compose"
+    elif command -v podman-compose >/dev/null 2>&1; then
+        compose_cmd="podman-compose"
+    fi
+    
+    if $compose_cmd up -d --build; then
+        echo "  ${GREEN}✓${RESET} Web interface started successfully"
+        echo "  ${BLUE}Dashboard:${RESET} http://localhost:3000"
+        echo "  ${BLUE}API:${RESET} http://localhost:3001"
+        echo
+        echo "${GREEN}${BOLD}Web interface is now running!${RESET}"
+        echo "Access your mirror dashboard at: ${BLUE}http://localhost:3000${RESET}"
+    else
+        echo "  ${RED}✗${RESET} Failed to start web interface"
+        exit 1
+    fi
+    
+    cd "$PROJECT_ROOT"
+}
+
+# Function to stop web interface
+stop_web_interface() {
+    echo "${YELLOW}${BOLD}=== Stopping Web Interface ===${RESET}"
+    
+    if [[ ! -d "web" ]]; then
+        echo "  ${YELLOW}!${RESET} Web interface directory not found"
+        return 0
+    fi
+    
+    cd web
+    
+    # Check if Docker Compose v2 is available
+    local compose_cmd="docker-compose"
+    if command -v docker >/dev/null 2>&1 && docker compose version >/dev/null 2>&1; then
+        compose_cmd="docker compose"
+    elif command -v podman-compose >/dev/null 2>&1; then
+        compose_cmd="podman-compose"
+    fi
+    
+    if $compose_cmd down; then
+        echo "  ${GREEN}✓${RESET} Web interface stopped"
+    else
+        echo "  ${RED}✗${RESET} Failed to stop web interface"
+    fi
+    
+    cd "$PROJECT_ROOT"
+}
+
 # Handle command line arguments
 case "${1:-start}" in
     "start"|"")
         main
+        ;;
+    "web"|"--web")
+        # Start mirrors and web interface
+        main
+        start_web_interface
+        ;;
+    "web-only"|"--web-only")
+        # Start only web interface
+        start_web_interface
+        ;;
+    "web-stop"|"--web-stop")
+        # Stop web interface
+        stop_web_interface
         ;;
     "requirements"|"deps")
         check_requirements
@@ -329,6 +405,9 @@ case "${1:-start}" in
         echo
         echo "Commands:"
         echo "  start        Run complete setup and start syncing (default)"
+        echo "  web          Run complete setup, start syncing, and launch web interface"
+        echo "  web-only     Start only the web interface"
+        echo "  web-stop     Stop the web interface"
         echo "  requirements Check system requirements"
         echo "  directories  Create necessary directories"
         echo "  build        Build container images only"
@@ -337,6 +416,8 @@ case "${1:-start}" in
         echo
         echo "Examples:"
         echo "  $0           # Complete setup and start"
+        echo "  $0 web       # Complete setup, start syncing, and launch web UI"
+        echo "  $0 web-only  # Just start web interface"
         echo "  $0 build     # Just build images"
         echo "  $0 sync      # Just start syncing"
         ;;

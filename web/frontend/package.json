@@ -1,0 +1,21 @@
+{
+  "name": "mirror-sync-frontend",
+  "version": "1.0.0",
+  "description": "Vue.js Frontend for Mirror Sync Web Interface",
+  "scripts": {
+    "dev": "vite",
+    "build": "vite build",
+    "preview": "vite preview"
+  },
+  "dependencies": {
+    "vue": "^3.3.4",
+    "axios": "^1.5.0",
+    "socket.io-client": "^4.7.2",
+    "chart.js": "^4.4.0",
+    "vue-chartjs": "^5.2.0"
+  },
+  "devDependencies": {
+    "@vitejs/plugin-vue": "^4.3.4",
+    "vite": "^4.4.9"
+  }
+}

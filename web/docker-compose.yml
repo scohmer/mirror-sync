@@ -1,0 +1,50 @@
+version: '3.8'
+
+services:
+  web-backend:
+    build:
+      context: ./backend
+      dockerfile: Containerfile
+    container_name: mirror-sync-backend
+    environment:
+      - NODE_ENV=production
+      - PROJECT_ROOT=/app/mirror-sync
+    volumes:
+      - ../:/app/mirror-sync:ro
+      - ../logs:/app/logs:ro
+      - /var/run/docker.sock:/var/run/docker.sock:ro
+    networks:
+      - mirror-web
+    restart: unless-stopped
+    depends_on:
+      - web-frontend
+    ports:
+      - "3001:3001"
+
+  web-frontend:
+    build:
+      context: ./frontend
+      dockerfile: Containerfile
+    container_name: mirror-sync-frontend
+    networks:
+      - mirror-web
+    restart: unless-stopped
+
+  web-nginx:
+    build:
+      context: ./nginx
+      dockerfile: Containerfile
+    container_name: mirror-sync-nginx
+    ports:
+      - "3000:80"
+    networks:
+      - mirror-web
+    restart: unless-stopped
+    depends_on:
+      - web-backend
+      - web-frontend
+
+networks:
+  mirror-web:
+    driver: bridge
+    name: mirror-web
