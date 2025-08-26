@@ -39,16 +39,30 @@ const executeCommand = (command, cwd = PROJECT_ROOT) => {
 // Get overall mirror status
 app.get('/api/status', async (req, res) => {
   try {
+    console.log('Executing monitor script from:', PROJECT_ROOT);
     const result = await executeCommand('./scripts/monitor-mirrors.sh check');
+    console.log('Monitor script output:', result.stdout.substring(0, 200));
+    
     res.json({
       status: 'success',
       data: result.stdout,
+      debug: {
+        projectRoot: PROJECT_ROOT,
+        workingDir: process.cwd(),
+        outputLength: result.stdout.length
+      },
       timestamp: new Date().toISOString()
     });
   } catch (error) {
+    console.error('Monitor script error:', error);
     res.status(500).json({
       status: 'error',
-      message: error.error || 'Failed to get mirror status'
+      message: error.error || 'Failed to get mirror status',
+      debug: {
+        projectRoot: PROJECT_ROOT,
+        workingDir: process.cwd(),
+        stderr: error.stderr
+      }
     });
   }
 });
@@ -87,32 +101,67 @@ app.get('/api/report', async (req, res) => {
 // Get container status
 app.get('/api/containers', async (req, res) => {
   try {
-    const runtime = await executeCommand('which podman || which docker');
-    const containerRuntime = runtime.stdout.trim().split('\n')[0];
-    
-    const result = await executeCommand(`${containerRuntime} ps --format "json"`);
     let containers = [];
+    let debugInfo = [];
     
-    if (result.stdout.trim()) {
-      // Parse JSON output (one JSON object per line)
-      containers = result.stdout.trim().split('\n').map(line => {
-        try {
-          return JSON.parse(line);
-        } catch (e) {
-          return null;
-        }
-      }).filter(container => container && container.Names && container.Names.includes('mirror'));
+    // Try podman first (since that's what's running on the host)
+    try {
+      const podmanResult = await executeCommand('podman ps --format "json"');
+      debugInfo.push(`Podman command succeeded, output length: ${podmanResult.stdout.length}`);
+      
+      if (podmanResult.stdout.trim()) {
+        const allContainers = podmanResult.stdout.trim().split('\n').map(line => {
+          try {
+            return JSON.parse(line);
+          } catch (e) {
+            debugInfo.push(`JSON parse error: ${e.message} for line: ${line.substring(0, 100)}`);
+            return null;
+          }
+        }).filter(container => container);
+        
+        debugInfo.push(`Total containers found: ${allContainers.length}`);
+        
+        // Filter for mirror-related containers - check both Names and container name patterns
+        containers = allContainers.filter(container => {
+          const name = container.Names ? container.Names[0] : '';
+          const imageName = container.Image || '';
+          const isMirrorContainer = name.includes('mirror') || 
+                                   imageName.includes('mirror') ||
+                                   name.includes('debian') ||
+                                   name.includes('ubuntu') ||
+                                   name.includes('rocky');
+          
+          if (isMirrorContainer) {
+            debugInfo.push(`Found mirror container: ${name} (${imageName})`);
+          }
+          
+          return isMirrorContainer;
+        });
+      }
+    } catch (podmanError) {
+      debugInfo.push(`Podman failed: ${podmanError.error || podmanError.message}`);
+      
+      // Fallback to docker
+      try {
+        const dockerResult = await executeCommand('docker ps --format "json"');
+        debugInfo.push(`Docker command succeeded`);
+        // Similar processing for docker...
+      } catch (dockerError) {
+        debugInfo.push(`Docker also failed: ${dockerError.error || dockerError.message}`);
+      }
     }
     
     res.json({
       status: 'success',
       data: containers,
+      debug: debugInfo,
       timestamp: new Date().toISOString()
     });
   } catch (error) {
     res.status(500).json({
       status: 'error',
-      message: error.error || 'Failed to get container status'
+      message: error.error || 'Failed to get container status',
+      debug: error.stderr || error.message
     });
   }
 });

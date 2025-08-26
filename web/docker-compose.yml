@@ -12,14 +12,18 @@ services:
     volumes:
       - ../:/app/mirror-sync:ro
       - ../logs:/app/logs:ro
-      - /var/run/docker.sock:/var/run/docker.sock:ro
+      - /run/podman/podman.sock:/var/run/docker.sock:ro
     networks:
       - mirror-web
+      - default
     restart: unless-stopped
     depends_on:
       - web-frontend
     ports:
       - "3001:3001"
+    privileged: false
+    security_opt:
+      - no-new-privileges:true
 
   web-frontend:
     build:
