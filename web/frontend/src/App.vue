@@ -166,11 +166,13 @@ export default {
       SocketService.connect()
       
       SocketService.on('socket-connected', () => {
+        console.log('Frontend received socket-connected event')
         this.isConnected = true
         SocketService.emit('startMonitoring')
       })
       
       SocketService.on('socket-disconnected', () => {
+        console.log('Frontend received socket-disconnected event')
         this.isConnected = false
       })
       
