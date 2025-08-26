@@ -1,8 +1,6 @@
 import { io } from 'socket.io-client'
 
-const SOCKET_URL = process.env.NODE_ENV === 'production' 
-  ? window.location.origin 
-  : 'http://localhost:3001'
+const SOCKET_URL = window.location.origin
 
 class SocketService {
   constructor() {
