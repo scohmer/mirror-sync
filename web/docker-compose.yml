@@ -13,14 +13,10 @@ services:
       - ../:/app/mirror-sync:ro
       - ../logs:/app/logs:ro
       - /run/podman/podman.sock:/var/run/docker.sock:ro
-    networks:
-      - mirror-web
-      - default
+    network_mode: "host"
     restart: unless-stopped
     depends_on:
       - web-frontend
-    ports:
-      - "3001:3001"
     privileged: false
     security_opt:
       - no-new-privileges:true
