@@ -21,15 +21,25 @@ app.use(express.json());
 const PROJECT_ROOT = process.env.PROJECT_ROOT || '/app/mirror-sync';
 const PORT = process.env.PORT || 3001;
 
-// Utility function to execute shell commands
-const executeCommand = (command, cwd = PROJECT_ROOT) => {
+// Utility function to execute shell commands with timeout
+const executeCommand = (command, cwd = PROJECT_ROOT, timeoutMs = 30000) => {
   return new Promise((resolve, reject) => {
-    exec(command, { cwd }, (error, stdout, stderr) => {
+    const child = exec(command, { cwd, timeout: timeoutMs }, (error, stdout, stderr) => {
       if (error) {
         reject({ error: error.message, stderr });
       } else {
         resolve({ stdout, stderr });
       }
+    });
+    
+    // Additional timeout safety
+    const timer = setTimeout(() => {
+      child.kill('SIGTERM');
+      reject({ error: `Command timeout after ${timeoutMs}ms`, stderr: '' });
+    }, timeoutMs);
+    
+    child.on('exit', () => {
+      clearTimeout(timer);
     });
   });
 };
