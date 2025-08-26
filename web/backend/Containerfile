@@ -14,14 +14,8 @@ RUN npm install --production
 # Copy application code
 COPY . .
 
-# Create non-root user
-RUN addgroup -g 1001 -S nodejs && \
-    adduser -S backend -u 1001 -G nodejs
-
-# Change ownership
-RUN chown -R backend:nodejs /app
-
-USER backend
+# Create directories for podman
+RUN mkdir -p /tmp/containers /tmp/storage
 
 EXPOSE 3001
 

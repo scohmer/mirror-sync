@@ -17,9 +17,7 @@ services:
       - /home:/home:ro
     network_mode: "host"
     restart: unless-stopped
-    privileged: false
-    security_opt:
-      - no-new-privileges:true
+    privileged: true
 
   web-nginx:
     build:
