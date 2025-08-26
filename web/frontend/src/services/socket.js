@@ -23,17 +23,17 @@ class SocketService {
 
     this.socket.on('connect', () => {
       console.log('WebSocket connected:', this.socket.id)
-      this.emit('connect')
+      this.emit('socket-connected')
     })
 
     this.socket.on('disconnect', (reason) => {
       console.log('WebSocket disconnected:', reason)
-      this.emit('disconnect', reason)
+      this.emit('socket-disconnected', reason)
     })
 
     this.socket.on('connect_error', (error) => {
       console.error('WebSocket connection error:', error)
-      this.emit('connect_error', error)
+      this.emit('socket-error', error)
     })
 
     // Re-register all listeners

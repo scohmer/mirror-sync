@@ -165,12 +165,12 @@ export default {
     setupWebSocket() {
       SocketService.connect()
       
-      SocketService.on('connect', () => {
+      SocketService.on('socket-connected', () => {
         this.isConnected = true
         SocketService.emit('startMonitoring')
       })
       
-      SocketService.on('disconnect', () => {
+      SocketService.on('socket-disconnected', () => {
         this.isConnected = false
       })
       
