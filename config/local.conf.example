@@ -29,6 +29,11 @@
 #IO_SCHEDULING_CLASS="best-effort" # IO scheduling class
 #IO_SCHEDULING_PRIORITY="7"        # IO scheduling priority (0=highest, 7=lowest)
 
+# Proxy configuration (uncomment and configure if needed)
+#HTTP_PROXY="http://proxy.company.com:8080"    # HTTP proxy server
+#HTTPS_PROXY="http://proxy.company.com:8080"   # HTTPS proxy server  
+#NO_PROXY="localhost,127.0.0.1,*.local,*.company.com"  # Bypass proxy for these
+
 # ========== Debian Configuration ==========
 # Customize Debian mirror settings
 

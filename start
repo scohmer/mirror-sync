@@ -284,6 +284,14 @@ main() {
     
     echo "${BLUE}Starting mirror-sync quick setup...${RESET}"
     echo "Project root: $PROJECT_ROOT"
+    
+    # Show proxy configuration if set
+    if [[ -n "${HTTP_PROXY:-}" ]] || [[ -n "${HTTPS_PROXY:-}" ]]; then
+        echo "Proxy configuration detected:"
+        [[ -n "${HTTP_PROXY:-}" ]] && echo "  HTTP_PROXY: $HTTP_PROXY"
+        [[ -n "${HTTPS_PROXY:-}" ]] && echo "  HTTPS_PROXY: $HTTPS_PROXY"
+        [[ -n "${NO_PROXY:-}" ]] && echo "  NO_PROXY: $NO_PROXY"
+    fi
     echo
     
     # Run setup steps

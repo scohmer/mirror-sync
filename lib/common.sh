@@ -107,8 +107,14 @@ run_container() {
     [[ -n "${DEFAULT_MEMORY_LIMIT:-}" ]] && resource_args+=("--memory=${DEFAULT_MEMORY_LIMIT}")
     [[ -n "${DEFAULT_CPU_LIMIT:-}" ]] && resource_args+=("--cpus=${DEFAULT_CPU_LIMIT}")
     
+    # Add proxy environment variables if configured
+    [[ -n "${HTTP_PROXY:-}" ]] && resource_args+=("-e" "HTTP_PROXY=${HTTP_PROXY}" "-e" "http_proxy=${HTTP_PROXY}")
+    [[ -n "${HTTPS_PROXY:-}" ]] && resource_args+=("-e" "HTTPS_PROXY=${HTTPS_PROXY}" "-e" "https_proxy=${HTTPS_PROXY}")
+    [[ -n "${NO_PROXY:-}" ]] && resource_args+=("-e" "NO_PROXY=${NO_PROXY}" "-e" "no_proxy=${NO_PROXY}")
+    
     log_info "Running container: $container_name"
     log_debug "Image: $image_name, Runtime: $runtime"
+    [[ -n "${HTTP_PROXY:-}" ]] && log_debug "HTTP Proxy: $HTTP_PROXY"
     
     if ! "$runtime" run --rm --name "$container_name" \
         "${resource_args[@]}" \
