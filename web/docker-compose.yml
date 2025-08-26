@@ -13,6 +13,8 @@ services:
       - ../:/app/mirror-sync:ro
       - ../logs:/app/logs:ro
       - /run/podman/podman.sock:/var/run/docker.sock:ro
+      - /srv/mirrors:/srv/mirrors:ro
+      - /home:/home:ro
     network_mode: "host"
     restart: unless-stopped
     privileged: false

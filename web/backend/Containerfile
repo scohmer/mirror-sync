@@ -2,8 +2,8 @@ FROM docker.io/node:18-alpine
 
 WORKDIR /app
 
-# Install bash and other required tools
-RUN apk add --no-cache bash curl findutils coreutils
+# Install bash, podman, and other required tools
+RUN apk add --no-cache bash curl findutils coreutils podman
 
 # Copy package files
 COPY package*.json ./
