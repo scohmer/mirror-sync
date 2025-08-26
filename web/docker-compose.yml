@@ -23,8 +23,8 @@ services:
 
   web-nginx:
     build:
-      context: ./nginx
-      dockerfile: Containerfile
+      context: .
+      dockerfile: nginx/Containerfile
     container_name: mirror-sync-nginx
     network_mode: "host"
     restart: unless-stopped

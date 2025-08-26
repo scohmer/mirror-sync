@@ -2,14 +2,14 @@ FROM docker.io/node:18-alpine as builder
 
 WORKDIR /app
 
-# Copy frontend package files
-COPY ../frontend/package*.json ./
+# Copy frontend package files from build context
+COPY frontend/package*.json ./
 
 # Install dependencies  
 RUN npm install
 
-# Copy frontend source code
-COPY ../frontend/ .
+# Copy frontend source code from build context  
+COPY frontend/ .
 
 # Build the frontend application
 RUN npm run build
@@ -17,8 +17,8 @@ RUN npm run build
 # Production stage
 FROM docker.io/nginx:alpine
 
-# Copy nginx configuration
-COPY nginx.conf /etc/nginx/nginx.conf
+# Copy nginx configuration  
+COPY nginx/nginx.conf /etc/nginx/nginx.conf
 
 # Copy built frontend assets
 COPY --from=builder /app/dist /usr/share/nginx/html
