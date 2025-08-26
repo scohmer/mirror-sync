@@ -51,15 +51,15 @@ app.get('/api/status', async (req, res) => {
   try {
     console.log('Getting simplified mirror status');
     
-    // Provide mock status data that shows the interface working
+    // Provide mock status data that matches frontend parsing expectations
     const mockStatus = `
 [${new Date().toISOString()}] [INFO] Running mirror health checks
-[${new Date().toISOString()}] [INFO] Checking Debian mirror health
-[${new Date().toISOString()}] [INFO] Debian mirror status: OK
-[${new Date().toISOString()}] [INFO] Checking Ubuntu mirror health  
-[${new Date().toISOString()}] [INFO] Ubuntu mirror status: OK
-[${new Date().toISOString()}] [INFO] Checking Rocky mirror health
-[${new Date().toISOString()}] [INFO] Rocky mirror status: OK
+[${new Date().toISOString()}] [INFO] Checking Debian Mirror health
+[${new Date().toISOString()}] [INFO] Debian Mirror status: OK
+[${new Date().toISOString()}] [INFO] Checking Ubuntu Mirror health  
+[${new Date().toISOString()}] [INFO] Ubuntu Mirror status: OK
+[${new Date().toISOString()}] [INFO] Checking Rocky Mirror health
+[${new Date().toISOString()}] [INFO] Rocky Mirror status: OK
 [${new Date().toISOString()}] [INFO] All mirror containers running normally
 `;
 
