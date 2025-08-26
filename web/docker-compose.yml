@@ -21,15 +21,6 @@ services:
     security_opt:
       - no-new-privileges:true
 
-  web-frontend:
-    build:
-      context: ./frontend
-      dockerfile: Containerfile
-    container_name: mirror-sync-frontend
-    networks:
-      - mirror-web
-    restart: unless-stopped
-
   web-nginx:
     build:
       context: ./nginx
@@ -39,7 +30,6 @@ services:
     restart: unless-stopped
     depends_on:
       - web-backend
-      - web-frontend
 
 networks:
   mirror-web:
