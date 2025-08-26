@@ -53,6 +53,9 @@ The `start` script automatically:
 **Available commands:**
 ```bash
 ./start                    # Complete setup and start syncing (default)
+./start web               # Complete setup + launch web interface
+./start web-only          # Start web interface only
+./start web-stop          # Stop web interface
 ./start requirements       # Check system requirements only
 ./start directories        # Create directories only  
 ./start build             # Build container images only
@@ -136,7 +139,36 @@ Override any setting from the global config without modifying the main file.
 
 ## Monitoring and Management
 
-### Status Monitoring
+### Web Interface (Recommended)
+
+For real-time monitoring with a modern dashboard:
+
+```bash
+# Launch web interface with mirrors
+./start web
+
+# Or start just the web interface
+./start web-only
+```
+
+**Web Dashboard Features:**
+- 🌐 **Real-time monitoring** at http://localhost:3000
+- 📊 **Live mirror status** for Debian, Ubuntu, and Rocky Linux
+- 🐳 **Container monitoring** with health status and logs
+- 📜 **Live log streaming** with filtering and search
+- 📱 **Responsive design** for mobile and desktop
+- 🔄 **WebSocket updates** for instant status changes
+- 📈 **System metrics** including disk usage and recent activity
+
+The web interface provides:
+- **Mirror Status Cards**: Real-time health indicators for each distribution
+- **Container Dashboard**: Running containers with status, ports, and resource usage
+- **Log Viewer**: Live streaming logs with level filtering (DEBUG, INFO, WARN, ERROR)
+- **System Overview**: Disk usage, system load, and recent activity metrics
+
+### Command-Line Monitoring
+
+For traditional command-line monitoring:
 
 ```bash
 # Check mirror health
@@ -180,11 +212,20 @@ Override any setting from the global config without modifying the main file.
 - Log rotation and retention management
 - Error handling with notification support
 
+### Web Interface & Monitoring
+- **Real-time web dashboard** with Vue.js frontend
+- **RESTful API** for status queries and integration
+- **WebSocket connections** for live updates
+- **Containerized deployment** with Docker Compose
+- **Nginx reverse proxy** with security headers and rate limiting
+- **Mobile-responsive design** for monitoring on any device
+
 ### Monitoring & Alerting
 - Email notifications via system mail
 - Slack webhook integration
 - Comprehensive health reporting
 - Container status monitoring
+- Real-time web dashboard with live updates
 
 ### Security
 - Non-root container execution where possible
@@ -207,6 +248,20 @@ mirror-sync/
 ├── scripts/               # Management scripts
 │   ├── setup-mirrors.sh  # Initial setup script
 │   └── monitor-mirrors.sh # Monitoring script
+├── web/                   # Web interface (NEW)
+│   ├── backend/          # Node.js API server
+│   │   ├── server.js     # Express server with WebSocket
+│   │   ├── package.json  # Node.js dependencies
+│   │   └── Containerfile # Backend container
+│   ├── frontend/         # Vue.js dashboard
+│   │   ├── src/          # Vue.js source code
+│   │   ├── package.json  # Frontend dependencies
+│   │   ├── Containerfile # Frontend container
+│   │   └── nginx.conf    # Frontend nginx config
+│   ├── nginx/            # Reverse proxy
+│   │   ├── Containerfile # Nginx container
+│   │   └── nginx.conf    # Proxy configuration
+│   └── docker-compose.yml # Container orchestration
 ├── apt-mirror/            # Debian/Ubuntu mirrors
 │   ├── deb.debian.org/   # Debian-specific container
 │   ├── archive.ubuntu.com/ # Ubuntu-specific container
@@ -228,6 +283,7 @@ The optimized version maintains backward compatibility while adding:
 - **Centralized Configuration**: No more scattered environment variables
 - **Shared Components**: Reduced duplication, consistent behavior
 - **Enhanced Monitoring**: Proactive health checks and alerting
+- **Real-time Web Interface**: Vue.js dashboard with live updates and WebSocket support
 - **Better Resource Management**: Configurable limits and cleanup
 - **Improved Error Handling**: Notifications and detailed logging
 - **Standardized Rocky Support**: Full parity with Debian/Ubuntu features
