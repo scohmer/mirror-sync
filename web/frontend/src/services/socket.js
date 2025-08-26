@@ -13,6 +13,8 @@ class SocketService {
       this.disconnect()
     }
 
+    console.log('Attempting WebSocket connection to:', SOCKET_URL)
+    
     this.socket = io(SOCKET_URL, {
       transports: ['websocket', 'polling'],
       timeout: 10000,
