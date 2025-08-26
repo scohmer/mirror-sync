@@ -30,6 +30,6 @@ RUN mkdir -p /var/cache/nginx /var/log/nginx /tmp && \
 # Switch to existing nginx user
 USER nginx
 
-EXPOSE 8080
+EXPOSE 3000
 
 CMD ["nginx", "-g", "daemon off;"]
