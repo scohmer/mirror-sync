@@ -160,6 +160,8 @@ For real-time monitoring with a modern dashboard:
 - 🔄 **WebSocket updates** for instant status changes
 - 📈 **System metrics** including disk usage and recent activity
 
+![Web Dashboard](screenshots/dashboard.png)
+
 The web interface provides:
 - **Mirror Status Cards**: Real-time health indicators for each distribution
 - **Container Dashboard**: Running containers with status, ports, and resource usage
@@ -299,6 +301,8 @@ The project includes a comprehensive debug menu system for troubleshooting:
 ```bash
 ./scripts/debug-menu.sh
 ```
+
+![Debug Menu](screenshots/debug.png)
 
 The interactive menu provides:
 
