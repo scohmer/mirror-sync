@@ -15,8 +15,6 @@ services:
       - /run/podman/podman.sock:/var/run/docker.sock:ro
     network_mode: "host"
     restart: unless-stopped
-    depends_on:
-      - web-frontend
     privileged: false
     security_opt:
       - no-new-privileges:true
