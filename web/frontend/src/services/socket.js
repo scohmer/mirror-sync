@@ -23,17 +23,17 @@ class SocketService {
 
     this.socket.on('connect', () => {
       console.log('WebSocket connected:', this.socket.id)
-      this.emit('socket-connected')
+      this.notifyListeners('socket-connected')
     })
 
     this.socket.on('disconnect', (reason) => {
       console.log('WebSocket disconnected:', reason)
-      this.emit('socket-disconnected', reason)
+      this.notifyListeners('socket-disconnected', reason)
     })
 
     this.socket.on('connect_error', (error) => {
       console.error('WebSocket connection error:', error)
-      this.emit('socket-error', error)
+      this.notifyListeners('socket-error', error)
     })
 
     // Re-register all listeners
@@ -58,6 +58,19 @@ class SocketService {
       this.socket.emit(event, data)
     } else {
       console.warn('WebSocket not connected, cannot emit:', event)
+    }
+  }
+
+  notifyListeners(event, data) {
+    console.log('Notifying listeners for event:', event)
+    if (this.listeners.has(event)) {
+      this.listeners.get(event).forEach(callback => {
+        try {
+          callback(data)
+        } catch (error) {
+          console.error('Error in event listener:', error)
+        }
+      })
     }
   }
 
